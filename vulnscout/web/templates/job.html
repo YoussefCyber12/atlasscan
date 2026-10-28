@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Scan running &middot; VulnScout{% endblock %}
+{% block content %}
+  <h1>Scanning…</h1>
+  <p class="mono muted">{{ target }}</p>
+
+  <div class="card" style="margin-top: 18px;">
+    <div class="row"><span class="badge medium" id="status">running</span><span class="mono" id="message">starting…</span></div>
+    <pre id="log" style="max-height: 320px; overflow-y: auto;"></pre>
+  </div>
+  <p class="muted">Keep this tab open. You will be redirected automatically when the scan finishes.</p>
+{% endblock %}
+{% block scripts %}
+<script>
+  const jobId = {{ job_id|tojson }};
+  const logEl = document.getElementById('log');
+  const statusEl = document.getElementById('status');
+  const messageEl = document.getElementById('message');
+
+  async function poll() {
+    try {
+      const res = await fetch(`/api/jobs/${jobId}`, { cache: 'no-store' });
+      const data = await res.json();
+      logEl.textContent = (data.log || []).join('\n');
+      logEl.scrollTop = logEl.scrollHeight;
+      messageEl.textContent = data.message || data.status;
+      if (data.status === 'done' && data.scan_id) {
+        window.location.href = `/scan/${data.scan_id}`;
+        return;
+      }
+      if (data.status === 'error') {
+        statusEl.textContent = 'error';
+        statusEl.className = 'badge critical';
+        messageEl.textContent = data.error || 'scan failed';
+        return;
+      }
+    } catch (err) {
+      messageEl.textContent = 'connection lost, retrying…';
+    }
+    setTimeout(poll, 1200);
+  }
+  poll();
+</script>
+{% endblock %}

@@ -1,0 +1,83 @@
+<div class="row" style="justify-content: space-between; align-items: flex-start;">
+  <div>
+    <h1>{{ result.target }}</h1>
+    <div class="muted mono">
+      scan {{ result.scan_id }} &middot; started {{ result.started_at }}
+      {% if result.finished_at %}&middot; finished {{ result.finished_at }}{% endif %}
+    </div>
+  </div>
+  <button class="btn-ghost no-print" onclick="window.print()">Print / PDF</button>
+</div>
+
+<div class="grid" style="margin-top: 20px;">
+  <div class="stat">
+    <div class="num risk {% if risk < 25 %}low{% elif risk < 60 %}mid{% else %}high{% endif %}">{{ risk }}</div>
+    <div class="label">Risk score / 100</div>
+  </div>
+  <div class="stat"><div class="num">{{ findings|length }}</div><div class="label">Findings</div></div>
+  {% for sev in ["critical", "high", "medium", "low", "info"] %}
+    <div class="stat">
+      <div class="num" style="color: var(--{{ sev }})">{{ counts[sev] }}</div>
+      <div class="label">{{ severity_labels[sev] }}</div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="card" style="margin-top: 18px;">
+  <dl class="meta">
+    <dt>Requests</dt><dd>{{ result.stats.requests }}</dd>
+    <dt>Pages crawled</dt><dd>{{ result.stats.pages_crawled }}</dd>
+    <dt>Duration</dt><dd>{{ result.stats.duration }}s</dd>
+    <dt>Modules</dt><dd>{{ result.modules|join(", ") }}</dd>
+    <dt>Tool</dt><dd>VulnScout {{ result.tool_version }}</dd>
+  </dl>
+</div>
+
+<h2>Findings</h2>
+<div class="filters row no-print" style="margin-bottom: 14px;">
+  <button class="active" data-sev="all">All</button>
+  {% for sev in ["critical", "high", "medium", "low", "info"] %}
+    <button data-sev="{{ sev }}">{{ severity_labels[sev] }} ({{ counts[sev] }})</button>
+  {% endfor %}
+</div>
+
+<div id="findings">
+  {% for f in findings %}
+    <details class="finding" data-sev="{{ f.severity }}">
+      <summary>
+        <span class="badge {{ f.severity }}">{{ severity_labels[f.severity] }}</span>
+        <span class="title">{{ f.name }}</span>
+        <span class="muted mono" style="margin-left: auto">{{ f.module }}</span>
+      </summary>
+      <div class="body">
+        <p>{{ f.description }}</p>
+        {% if f.evidence %}<pre>{{ f.evidence }}</pre>{% endif %}
+        <dl class="meta">
+          <dt>URL</dt><dd class="mono">{{ f.url }}</dd>
+          {% if f.remediation %}<dt>Remediation</dt><dd>{{ f.remediation }}</dd>{% endif %}
+          {% if f.cwe %}<dt>CWE</dt><dd class="mono">{{ f.cwe }}</dd>{% endif %}
+          {% if f.owasp %}<dt>OWASP</dt><dd class="mono">{{ f.owasp }}</dd>{% endif %}
+          <dt>Confidence</dt><dd>{{ f.confidence }}</dd>
+        </dl>
+      </div>
+    </details>
+  {% else %}
+    <div class="empty">No findings. Better luck next time 🎉</div>
+  {% endfor %}
+</div>
+
+<script>
+  (function () {
+    const buttons = document.querySelectorAll('.filters button');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const sev = btn.dataset.sev;
+        document.querySelectorAll('#findings .finding').forEach(el => {
+          el.style.display = (sev === 'all' || el.dataset.sev === sev) ? '' : 'none';
+        });
+      });
+    });
+  })();
+</script>

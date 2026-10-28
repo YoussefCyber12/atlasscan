@@ -1,4 +1,4 @@
-# Contributing to VulnScout
+# Contributing to AtlasScan
 
 Thanks for taking the time to contribute.
 
@@ -22,9 +22,9 @@ ruff check .
 
 ## Adding a module
 
-1. Create `vulnscout/modules/my_check.py` with a class exposing `name`, `description`, and
+1. Create `atlasscan/modules/my_check.py` with a class exposing `name`, `description`, and
    `run(ctx) -> list[Finding]`.
-2. Register it in `vulnscout/modules/__init__.py`.
+2. Register it in `atlasscan/modules/__init__.py`.
 3. Add it to `DEFAULT_MODULES` if it should run in a normal scan.
 4. Add a vulnerable endpoint to the test server and a test in `tests/`.
 5. Update the module table in `README.md`.

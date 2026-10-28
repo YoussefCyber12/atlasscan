@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from vulnscout.cli import build_parser, exit_code_for, parse_headers
-from vulnscout.core.models import Finding, ScanResult
+from atlasscan.cli import build_parser, exit_code_for, parse_headers
+from atlasscan.core.models import Finding, ScanResult
 
 
 def result_with(*severities: str) -> ScanResult:

@@ -1,25 +1,25 @@
-# VulnScout
+# AtlasScan
 
-[![CI](https://github.com/YoussefCyber12/vulnscout/actions/workflows/ci.yml/badge.svg)](https://github.com/YoussefCyber12/vulnscout/actions/workflows/ci.yml)
+[![CI](https://github.com/YoussefCyber12/atlasscan/actions/workflows/ci.yml/badge.svg)](https://github.com/YoussefCyber12/atlasscan/actions/workflows/ci.yml)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 **A small, honest web vulnerability scanner — CLI + local web dashboard.**
 
-VulnScout is a focused, dependency-light scanner for web applications. It crawls a target,
+AtlasScan is a focused, dependency-light scanner for web applications. It crawls a target,
 tests it for a handful of high-signal issues, and produces a clean HTML/JSON report. It is not
 a replacement for Burp Suite or Nuclei; it is a good first pass and a readable codebase to
 extend.
 
 ```text
-$ vulnscout scan https://example.com --authorized
+$ atlasscan scan https://example.com --authorized
 
-VulnScout
+AtlasScan
 https://example.com/
 Risk score: 42.3/100   Findings: 9
 1 critical · 2 high · 3 medium · 2 low · 1 info
 Requests: 61   Pages: 12   Duration: 8.4s
-Report: ~/.vulnscout/scans/4f1c9a2d8b31.html
+Report: ~/.atlasscan/scans/4f1c9a2d8b31.html
 ```
 
 > ⚠️ **Authorized testing only.** You must own the target or have written permission.
@@ -54,19 +54,19 @@ Report: ~/.vulnscout/scans/4f1c9a2d8b31.html
 **Option A — one command (no clone)**
 
 ```bash
-pip install git+https://github.com/YoussefCyber12/vulnscout.git
-vulnscout --help
+pip install git+https://github.com/YoussefCyber12/atlasscan.git
+atlasscan --help
 ```
 
 **Option B — clone + editable install (recommended for development)**
 
 ```bash
-git clone https://github.com/YoussefCyber12/vulnscout.git
-cd vulnscout                     # <- repository root
+git clone https://github.com/YoussefCyber12/atlasscan.git
+cd atlasscan                     # <- repository root
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e .
-vulnscout --help
+atlasscan --help
 ```
 
 Python 3.9+ is required. `pip install -e ".[dev]"` adds the test/lint tooling.
@@ -76,27 +76,27 @@ Python 3.9+ is required. `pip install -e ".[dev]"` adds the test/lint tooling.
 `pip install -e .` must run in the folder that contains `pyproject.toml`:
 
 ```text
-vulnscout/            <- repository root: run pip HERE (pyproject.toml lives here)
+atlasscan/            <- repository root: run pip HERE (pyproject.toml lives here)
 ├── pyproject.toml
 ├── README.md
-├── vulnscout/        <- Python package: do NOT run pip here
+├── atlasscan/        <- Python package: do NOT run pip here
 │   ├── cli.py
 │   └── ...
 ├── tests/
 └── examples/
 ```
 
-A very common mistake is cloning and then `cd vulnscout` twice. If you see:
+A very common mistake is cloning and then `cd atlasscan` twice. If you see:
 
 ```text
-ERROR: file:///home/you/vulnscout/vulnscout does not appear to be a Python project:
+ERROR: file:///home/you/atlasscan/atlasscan does not appear to be a Python project:
 neither 'setup.py' nor 'pyproject.toml' found
 ```
 
 you are one level too deep. Fix it with:
 
 ```bash
-cd ..                 # or: cd ~/vulnscout
+cd ..                 # or: cd ~/atlasscan
 ls pyproject.toml     # this must exist
 pip install -e .
 ```
@@ -104,44 +104,44 @@ pip install -e .
 ### Verify the install
 
 ```bash
-which vulnscout       # should point inside your virtualenv
-vulnscout modules     # lists all 11 modules
+which atlasscan       # should point inside your virtualenv
+atlasscan modules     # lists all 11 modules
 ```
 
 ### Update / uninstall
 
 ```bash
 # update
-cd vulnscout && git pull && pip install -e .
+cd atlasscan && git pull && pip install -e .
 
 # remove
-pip uninstall vulnscout
+pip uninstall atlasscan
 ```
 
 ## Usage
 
 ```bash
 # Scan a site (asks for authorization confirmation unless -y is passed)
-vulnscout scan https://example.com
+atlasscan scan https://example.com
 
 # Non-interactive / CI
-vulnscout scan https://example.com --authorized --fail-on high
+atlasscan scan https://example.com --authorized --fail-on high
 
 # Only run selected modules
-vulnscout scan https://example.com -m jwt,headers,cors --authorized
+atlasscan scan https://example.com -m jwt,headers,cors --authorized
 
 # Write a specific report
-vulnscout scan https://example.com --authorized -o reports/example.html
+atlasscan scan https://example.com --authorized -o reports/example.html
 
 # Verbose findings (description + evidence + remediation)
-vulnscout scan https://example.com --authorized --verbose
+atlasscan scan https://example.com --authorized --verbose
 
 # List / inspect saved scans
-vulnscout list
-vulnscout show 4f1c9a2d8b31
+atlasscan list
+atlasscan show 4f1c9a2d8b31
 
 # Start the dashboard
-vulnscout dashboard --port 8000
+atlasscan dashboard --port 8000
 ```
 
 ### Options
@@ -149,7 +149,7 @@ vulnscout dashboard --port 8000
 | Flag                 | Default      | Description                                              |
 | -------------------- | ------------ | -------------------------------------------------------- |
 | `-y, --authorized`   | off          | Skip the interactive authorization prompt                |
-| `-m, --modules`      | all          | Comma-separated module list (`vulnscout modules`)        |
+| `-m, --modules`      | all          | Comma-separated module list (`atlasscan modules`)        |
 | `--no-crawl`         | off          | Only test the given URL                                  |
 | `--max-pages`        | `25`         | Crawl page limit                                         |
 | `--max-depth`        | `2`          | Crawl depth                                              |
@@ -164,7 +164,7 @@ vulnscout dashboard --port 8000
 | `-v, --verbose`      | off          | Print description, evidence and remediation per finding  |
 | `--fail-on`          | `none`       | Exit 1 on findings at/above `low\|medium\|high\|critical` |
 | `-q, --quiet`        | off          | No progress output                                       |
-| `--data-dir`         | `~/.vulnscout` | Where scans are stored                                 |
+| `--data-dir`         | `~/.atlasscan` | Where scans are stored                                 |
 
 ### Try it locally
 
@@ -176,7 +176,7 @@ touching a real target:
 python examples/vulnerable_app.py
 
 # terminal 2
-vulnscout scan http://127.0.0.1:8080 --authorized -o demo-report.html
+atlasscan scan http://127.0.0.1:8080 --authorized -o demo-report.html
 ```
 
 The demo server is intentionally insecure and must never be exposed to a network.
@@ -184,7 +184,7 @@ The demo server is intentionally insecure and must never be exposed to a network
 ## Dashboard
 
 ```bash
-vulnscout dashboard
+atlasscan dashboard
 # open http://127.0.0.1:8000
 ```
 
@@ -206,7 +206,7 @@ GET    /docs                   OpenAPI UI
 ## Project layout
 
 ```text
-vulnscout/
+atlasscan/
 ├── cli.py                 # argparse + rich CLI
 ├── config.py              # severity weights, defaults
 ├── core/
@@ -225,9 +225,9 @@ tests/                     # local deliberately-vulnerable test server
 Adding a module is intentionally boring:
 
 ```python
-# vulnscout/modules/example.py
-from vulnscout.core.context import ScanContext
-from vulnscout.core.models import Finding
+# atlasscan/modules/example.py
+from atlasscan.core.context import ScanContext
+from atlasscan.core.models import Finding
 
 
 class ExampleModule:
@@ -247,7 +247,7 @@ class ExampleModule:
         return []
 ```
 
-Register it in `vulnscout/modules/__init__.py` and, if it should run by default, add it to
+Register it in `atlasscan/modules/__init__.py` and, if it should run by default, add it to
 `DEFAULT_MODULES`.
 
 ## Development
@@ -272,11 +272,11 @@ network access is required.
 
 ## Disclaimer
 
-VulnScout is provided for **authorized security testing and education**. The authors accept no
+AtlasScan is provided for **authorized security testing and education**. The authors accept no
 liability for misuse or damage caused by this tool. The scanner sends active payloads; some
 checks can create noise or trigger WAFs. Always get written permission first.
 
-See [SECURITY.md](SECURITY.md) for reporting vulnerabilities in VulnScout itself.
+See [SECURITY.md](SECURITY.md) for reporting vulnerabilities in AtlasScan itself.
 
 ## License
 
@@ -286,11 +286,11 @@ MIT — see [LICENSE](LICENSE).
 
 ## بالعربية
 
-**VulnScout** أداة فحص ثغرات ويب مكتوبة بـ Python، بواجهة سطر أوامر ولوحة تحكم محلية.
+**AtlasScan** أداة فحص ثغرات ويب مكتوبة بـ Python، بواجهة سطر أوامر ولوحة تحكم محلية.
 
 ```bash
-vulnscout scan https://example.com --authorized
-vulnscout dashboard
+atlasscan scan https://example.com --authorized
+atlasscan dashboard
 ```
 
 تفحص: ترويسات الأمان، الكوكيز، CORS، ثغرات JWT، XSS المنعكس، SQLi، التحويل المفتوح،

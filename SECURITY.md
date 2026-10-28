@@ -1,8 +1,8 @@
 # Security Policy
 
-## Reporting a vulnerability in VulnScout
+## Reporting a vulnerability in AtlasScan
 
-If you find a security issue in VulnScout itself (for example: a bug that lets scan output
+If you find a security issue in AtlasScan itself (for example: a bug that lets scan output
 escape the HTML report, or a path traversal in the dashboard), please **do not open a public
 issue**.
 
@@ -16,7 +16,7 @@ You can expect an acknowledgement within a few days.
 
 ## Scope
 
-VulnScout is an **offensive** tool and is meant to be pointed at systems you are authorized to
+AtlasScan is an **offensive** tool and is meant to be pointed at systems you are authorized to
 test. Reports about the scanner "finding" or "triggering" issues on systems you do not own are
 out of scope.
 

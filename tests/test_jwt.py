@@ -4,7 +4,7 @@ import hashlib
 
 import pytest
 
-from vulnscout.modules.jwt import (
+from atlasscan.modules.jwt import (
     b64url_decode,
     b64url_encode,
     decode_segment,
@@ -48,6 +48,6 @@ def test_decode_segment_handles_garbage():
 
 @pytest.mark.parametrize("secret", ["secret", "changeme", "your-256-bit-secret"])
 def test_weak_secret_list_detects_common_values(secret):
-    from vulnscout.modules.jwt import WEAK_SECRETS
+    from atlasscan.modules.jwt import WEAK_SECRETS
 
     assert secret in WEAK_SECRETS

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from vulnscout.core.models import Finding, ScanResult
-from vulnscout.core.storage import Storage
-from vulnscout.web.app import create_app
+from atlasscan.core.models import Finding, ScanResult
+from atlasscan.core.storage import Storage
+from atlasscan.web.app import create_app
 
 
 def test_dashboard_pages(tmp_path):

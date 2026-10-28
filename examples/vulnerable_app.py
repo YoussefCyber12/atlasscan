@@ -1,7 +1,7 @@
-"""A deliberately vulnerable local app, useful to try VulnScout without touching a real site.
+"""A deliberately vulnerable local app, useful to try AtlasScan without touching a real site.
 
     python examples/vulnerable_app.py
-    vulnscout scan http://127.0.0.1:8080 --authorized
+    atlasscan scan http://127.0.0.1:8080 --authorized
 
 This server is intentionally insecure and MUST NOT be exposed to a network.
 """
@@ -28,7 +28,7 @@ def weak_jwt() -> str:
 
 
 INDEX = """<!doctype html>
-<html><head><title>VulnScout demo</title></head>
+<html><head><title>AtlasScan demo</title></head>
 <body>
   <h1>Deliberately vulnerable demo</h1>
   <a href="/search?q=hello">Search</a>

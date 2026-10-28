@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from vulnscout.core.models import Finding, ScanResult
-from vulnscout.core.report import render_html, write_report
-from vulnscout.core.storage import Storage
+from atlasscan.core.models import Finding, ScanResult
+from atlasscan.core.report import render_html, write_report
+from atlasscan.core.storage import Storage
 
 
 def sample_result() -> ScanResult:

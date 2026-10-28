@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from vulnscout.core.utils import detect_sql_error, normalize_url, param_names, with_param
+from atlasscan.core.utils import detect_sql_error, normalize_url, param_names, with_param
 
 
 def test_normalize_url_strips_fragments_and_sorts_query():
@@ -37,7 +37,7 @@ def test_detect_sql_error_negative():
 
 
 def test_normalize_target_requires_host():
-    from vulnscout.core.scanner import normalize_target
+    from atlasscan.core.scanner import normalize_target
 
     assert normalize_target("example.com") == "https://example.com/"
     with pytest.raises(ValueError):

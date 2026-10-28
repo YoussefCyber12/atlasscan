@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from vulnscout.core.context import ScanOptions
-from vulnscout.core.scanner import run_scan
+from atlasscan.core.context import ScanOptions
+from atlasscan.core.scanner import run_scan
 
 MODULES = [
     "headers",
@@ -85,7 +85,7 @@ def test_risk_score_and_counts(result):
 
 
 def test_json_roundtrip(result):
-    from vulnscout.core.models import ScanResult
+    from atlasscan.core.models import ScanResult
 
     clone = ScanResult.from_dict(result.to_dict())
     assert clone.target == result.target

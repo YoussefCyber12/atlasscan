@@ -23,6 +23,8 @@ htmlcov/
 # Scanner output
 reports/
 *.sarif
+.demo-data/
+demo-report.html
 
 # Editors / OS
 .vscode/

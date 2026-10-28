@@ -48,7 +48,7 @@ Report: ~/.vulnscout/scans/4f1c9a2d8b31.html
 ## Install
 
 ```bash
-git clone https://github.com/your-username/vulnscout.git
+git clone https://github.com/YoussefCyber12/vulnscout.git
 cd vulnscout
 python -m venv .venv
 # Windows
@@ -77,7 +77,7 @@ vulnscout scan https://example.com -m jwt,headers,cors --authorized
 vulnscout scan https://example.com --authorized -o reports/example.html
 
 # Verbose findings (description + evidence + remediation)
-vulnscout scan https://example.com --authorized --json
+vulnscout scan https://example.com --authorized --verbose
 
 # List / inspect saved scans
 vulnscout list
@@ -104,6 +104,7 @@ vulnscout dashboard --port 8000
 | `-H, --header`       | –            | Extra request header, repeatable                         |
 | `-o, --output`       | –            | Report path (`.html` or `.json`)                         |
 | `--json`             | off          | Print JSON to stdout                                     |
+| `-v, --verbose`      | off          | Print description, evidence and remediation per finding  |
 | `--fail-on`          | `none`       | Exit 1 on findings at/above `low\|medium\|high\|critical` |
 | `-q, --quiet`        | off          | No progress output                                       |
 | `--data-dir`         | `~/.vulnscout` | Where scans are stored                                 |

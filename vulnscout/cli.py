@@ -52,6 +52,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--json", action="store_true", help="print the raw JSON result to stdout")
     scan.add_argument("--fail-on", choices=RISK_ORDER, default="none", help="exit 1 when a finding at/above this severity exists")
     scan.add_argument("-q", "--quiet", action="store_true", help="no progress output")
+    scan.add_argument("-v", "--verbose", action="store_true", help="print description, evidence and remediation for every finding")
     scan.add_argument("--data-dir", help="where to store scan results (default: ~/.vulnscout)")
 
     dash = sub.add_parser("dashboard", help="start the local web dashboard")
@@ -225,7 +226,7 @@ def cmd_scan(args: argparse.Namespace) -> int:
     if args.json:
         print(result.to_json())
     else:
-        print_findings(result, verbose=not args.quiet)
+        print_findings(result, verbose=args.verbose)
         print_summary(result, report_path)
         console.print(f"[dim]JSON result: {stored}[/dim]")
 

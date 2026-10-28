@@ -18,4 +18,4 @@ SEVERITY_COLOR = {
     "info": "blue",
 }
 
-DEFAULT_UA = "VulnScout/0.1.0 (+https://github.com/your-username/vulnscout)"
+DEFAULT_UA = "VulnScout/0.1.0 (+https://github.com/YoussefCyber12/vulnscout)"

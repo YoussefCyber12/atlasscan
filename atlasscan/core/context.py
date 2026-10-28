@@ -30,4 +30,10 @@ class ScanContext:
     options: ScanOptions
     pages: list[str] = field(default_factory=list)
     forms: list[Form] = field(default_factory=list)
+    tested_params: set[tuple[str, str]] = field(default_factory=set)
+    budget_exhausted: bool = False
     log: Callable[[str], None] = lambda message: None
+
+    def mark_param(self, url: str, name: str) -> None:
+        """Record that a parameter was actively tested, for the coverage report."""
+        self.tested_params.add((url, name))

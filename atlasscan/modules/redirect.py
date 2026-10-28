@@ -27,6 +27,7 @@ class RedirectModule:
             for name in param_names(page):
                 if name.lower() not in SUSPICIOUS_PARAMS:
                     continue
+                ctx.mark_param(page, name)
                 url = with_param(page, name, EVIL)
                 response = ctx.client.get(url, allow_redirects=False)
                 if response is None or not (300 <= response.status_code < 400):

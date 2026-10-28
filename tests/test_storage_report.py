@@ -61,6 +61,16 @@ def test_render_html_escapes_and_contains_findings():
     assert "https://example.test/" in html
     assert "&lt;svg/onload=alert(1)&gt;" in html
     assert "Risk score" in html
+    assert "Coverage" in html
+    assert "How the risk score is calculated" in html
+
+
+def test_render_html_surfaces_coverage_warnings():
+    result = sample_result()
+    result.coverage.warnings.append("No URL parameters were discovered, so XSS had nothing to test.")
+    html = render_html(result)
+    assert "Coverage limitations" in html
+    assert "No URL parameters were discovered" in html
 
 
 def test_write_report_dispatch(tmp_path):

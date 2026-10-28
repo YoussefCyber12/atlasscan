@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import math
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -60,12 +61,50 @@ class ScanStats:
 
 
 @dataclass
+class Coverage:
+    """What the scan actually covered, so a clean report is never mistaken for a safe app."""
+
+    pages_crawled: int = 0
+    pages_limit: int = 0
+    pages_truncated: bool = False
+    urls_discovered: int = 0
+    parameters_discovered: int = 0
+    parameters_tested: int = 0
+    params_limit: int = 0
+    params_truncated: bool = False
+    forms_discovered: int = 0
+    modules_run: list[str] = field(default_factory=list)
+    modules_failed: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return dataclasses.asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> Coverage:
+        if not data:
+            return cls()
+        known = {f.name for f in dataclasses.fields(cls)}
+        return cls(**{k: v for k, v in data.items() if k in known})
+
+
+RISK_FORMULA = "100 × (1 − e^(−total_weight / 25))"
+
+
+def compute_risk(total_weight: float) -> float:
+    if total_weight <= 0:
+        return 0.0
+    return round(100 * (1 - math.exp(-total_weight / 25.0)), 1)
+
+
+@dataclass
 class ScanResult:
     target: str
     started_at: str
     finished_at: str = ""
     findings: list[Finding] = field(default_factory=list)
     stats: ScanStats = field(default_factory=ScanStats)
+    coverage: Coverage = field(default_factory=Coverage)
     modules: list[str] = field(default_factory=list)
     tool_version: str = __version__
     scan_id: str = ""
@@ -93,13 +132,36 @@ class ScanResult:
 
     def risk_score(self) -> float:
         """0-100 aggregate score. Higher means more risk."""
-        if not self.findings:
-            return 0.0
-        raw = sum(f.weight for f in self.findings)
-        # Soft saturation so 5 mediums do not look worse than 1 critical.
-        return round(100 * (1 - 2.718281828 ** (-raw / 25.0)), 1)
+        return compute_risk(sum(f.weight for f in self.findings))
+
+    def risk_breakdown(self) -> dict[str, Any]:
+        """Explain the score: which severities contributed how much."""
+        counts = self.counts()
+        total = 0.0
+        contributions: list[dict[str, Any]] = []
+        for severity in SEVERITY_ORDER:
+            weight = SEVERITY_WEIGHT[severity]
+            points = counts[severity] * weight
+            total += points
+            contributions.append(
+                {
+                    "severity": severity,
+                    "count": counts[severity],
+                    "weight": weight,
+                    "points": round(points, 2),
+                }
+            )
+        for item in contributions:
+            item["share"] = round(100 * item["points"] / total, 1) if total else 0.0
+        return {
+            "score": compute_risk(total),
+            "formula": RISK_FORMULA,
+            "total_weight": round(total, 2),
+            "contributions": contributions,
+        }
 
     def to_dict(self) -> dict[str, Any]:
+        self.stats.params_tested = self.coverage.parameters_tested
         return {
             "scan_id": self.scan_id,
             "target": self.target,
@@ -108,6 +170,8 @@ class ScanResult:
             "tool_version": self.tool_version,
             "modules": self.modules,
             "stats": dataclasses.asdict(self.stats),
+            "coverage": self.coverage.to_dict(),
+            "risk": self.risk_breakdown(),
             "risk_score": self.risk_score(),
             "counts": self.counts(),
             "findings": [f.to_dict() for f in self.sorted_findings()],
@@ -124,6 +188,7 @@ class ScanResult:
             started_at=data.get("started_at", ""),
             finished_at=data.get("finished_at", ""),
             stats=stats,
+            coverage=Coverage.from_dict(data.get("coverage")),
             modules=data.get("modules", []),
             tool_version=data.get("tool_version", __version__),
             scan_id=data.get("scan_id", ""),

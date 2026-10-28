@@ -20,12 +20,14 @@ class XssModule:
         for page in ctx.pages:
             for name in param_names(page):
                 if tested >= ctx.options.max_params:
+                    ctx.budget_exhausted = True
                     return findings
                 tested += 1
 
                 marker = str(random.randint(1000, 9999))
                 payload = PAYLOAD_TEMPLATE.format(marker=marker)
                 url = with_param(page, name, payload)
+                ctx.mark_param(page, name)
                 response = ctx.client.get(url)
                 if response is None:
                     continue

@@ -181,6 +181,67 @@ atlasscan scan http://127.0.0.1:8080 --authorized -o demo-report.html
 
 The demo server is intentionally insecure and must never be exposed to a network.
 
+## Reading the report
+
+### Coverage
+
+A clean scan is only meaningful if the scanner actually reached the interesting parts of the
+app. Every report contains a **coverage** block (JSON) and section (HTML):
+
+```json
+"coverage": {
+  "pages_crawled": 25,
+  "pages_limit": 25,
+  "pages_truncated": true,
+  "parameters_discovered": 0,
+  "parameters_tested": 0,
+  "forms_discovered": 3,
+  "modules_failed": [],
+  "warnings": [
+    "No URL parameters were discovered, so these modules had nothing to test: redirect, sqli, xss. This is NOT evidence that the application is free of those issues.",
+    "Crawl stopped at the --max-pages limit (25); findings may be incomplete."
+  ]
+}
+```
+
+If `parameters_discovered` is `0`, the XSS/SQLi/redirect modules had nothing to attack. The CLI
+prints `! Coverage warning:` lines and the HTML report shows a yellow "Coverage limitations"
+panel for exactly this reason — a missing finding is not a proof of safety.
+
+### Risk score
+
+The score is **not** hand-tuned per finding; it is computed from severity weights:
+
+| Severity | Weight |
+| -------- | ------ |
+| critical | 10.0   |
+| high     | 7.5    |
+| medium   | 5.0    |
+| low      | 2.0    |
+| info     | 0.0    |
+
+`score = 100 × (1 − e^(−total_weight / 25))`
+
+The exponential curve saturates, so ten low findings never look worse than one critical. The
+JSON exposes the full maths under `risk`, and the HTML report renders it as a table:
+
+```json
+"risk": {
+  "score": 58.5,
+  "formula": "100 × (1 − e^(−total_weight / 25))",
+  "total_weight": 22.5,
+  "contributions": [
+    {"severity": "critical", "count": 1, "weight": 10.0, "points": 10.0, "share": 44.4}
+  ]
+}
+```
+
+### Known-benign forms
+
+The CSRF heuristic ignores forms that are not authenticated state changes: WordPress
+`wp-login.php?action=postpass`, `wp-comments-post.php`, signup pages and search-only fields.
+Those produce noise, not findings.
+
 ## Dashboard
 
 ```bash

@@ -28,11 +28,13 @@ class SqliModule:
         for page in ctx.pages:
             for name in param_names(page):
                 if tested >= ctx.options.max_params:
+                    ctx.budget_exhausted = True
                     return findings
                 if (page, name) in seen:
                     continue
                 seen.add((page, name))
                 tested += 1
+                ctx.mark_param(page, name)
 
                 for payload in ERROR_PAYLOADS:
                     url = with_param(page, name, payload)

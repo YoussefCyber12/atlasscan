@@ -25,6 +25,7 @@ reports/
 *.sarif
 .demo-data/
 demo-report.html
+demo-no-params.html
 
 # Editors / OS
 .vscode/

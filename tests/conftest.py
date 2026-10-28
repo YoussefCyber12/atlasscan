@@ -34,6 +34,9 @@ INDEX = """<!doctype html>
     <input type="text" name="user">
     <input type="password" name="pass">
   </form>
+  <form method="post" action="/wp-login.php?action=postpass">
+    <input type="password" name="post_password">
+  </form>
 </body></html>
 """
 
@@ -89,6 +92,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(302)
             self.send_header("Location", target)
             self.end_headers()
+        elif path == "/.git/HEAD":
+            # Exists but is protected -> must be reported as "remove it from the docroot".
+            self._send(403, "forbidden")
         else:
             self._send(404, "not found")
 

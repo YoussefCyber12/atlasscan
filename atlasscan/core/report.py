@@ -33,6 +33,8 @@ def render_html(result: ScanResult) -> str:
         severity_labels=SEVERITY_LABELS,
         counts=result.counts(),
         risk=result.risk_score(),
+        risk_breakdown=result.risk_breakdown(),
+        coverage=result.coverage.to_dict(),
         findings=[f.to_dict() for f in result.sorted_findings()],
     )
 

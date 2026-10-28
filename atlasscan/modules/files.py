@@ -131,17 +131,21 @@ class FilesModule:
             if response is None or response.status_code not in (200, 301, 302, 403):
                 continue
             if response.status_code == 403 and severity != "info":
-                # A plain 403 means the file exists but is protected; still worth a low note.
+                # A 403 means the file exists but is protected. The real fix is removing it
+                # from the deployment, not hiding it behind a web-server rule.
                 findings.append(
                     finding(
-                        "Sensitive path exists but is protected",
+                        "Sensitive path exists (403)",
                         "low",
                         url,
                         self.name,
-                        f"`{path}` returns 403, so the resource exists but access is denied. "
-                        "Confirm the protection is intentional.",
-                        evidence=f"HTTP {response.status_code} for {path}",
-                        remediation="Return 404 instead of 403 to avoid confirming resource existence.",
+                        f"`{path}` returns 403, so the resource is still deployed even though "
+                        "access is blocked. Any web-server misconfiguration re-exposes it.",
+                        evidence=f"HTTP 403 for {path}",
+                        remediation=(
+                            "Remove the file/directory from the production docroot (build artifact). "
+                            "Blocking it in Nginx/Apache is only a fallback, not a fix."
+                        ),
                         cwe=cwe,
                     )
                 )

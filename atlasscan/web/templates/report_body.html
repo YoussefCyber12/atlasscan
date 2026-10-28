@@ -33,6 +33,76 @@
   </dl>
 </div>
 
+<h2>Coverage</h2>
+<div class="grid">
+  <div class="stat">
+    <div class="num">{{ coverage.pages_crawled }}</div>
+    <div class="label">pages crawled{% if coverage.pages_limit %} / {{ coverage.pages_limit }}{% endif %}</div>
+  </div>
+  <div class="stat">
+    <div class="num">{{ coverage.parameters_discovered }}</div>
+    <div class="label">parameters found</div>
+  </div>
+  <div class="stat">
+    <div class="num">{{ coverage.parameters_tested }}</div>
+    <div class="label">parameters tested{% if coverage.params_limit %} / {{ coverage.params_limit }}{% endif %}</div>
+  </div>
+  <div class="stat">
+    <div class="num">{{ coverage.forms_discovered }}</div>
+    <div class="label">forms found</div>
+  </div>
+</div>
+
+{% if coverage.warnings %}
+  <div class="card" style="margin-top: 14px; border-color: var(--medium);">
+    <strong style="color: var(--medium)">Coverage limitations — read before trusting a clean result</strong>
+    <ul style="margin: 8px 0 0; padding-left: 20px;">
+      {% for warning in coverage.warnings %}<li>{{ warning }}</li>{% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<p class="muted" style="margin-top: 10px;">
+  Modules run: {{ coverage.modules_run|join(", ") or "none" }}
+  {% if coverage.modules_failed %}
+    &middot; <span style="color: var(--critical)">failed: {{ coverage.modules_failed|join(", ") }}</span>
+  {% endif %}
+</p>
+
+<h2>How the risk score is calculated</h2>
+<div class="card">
+  <p class="muted" style="margin-top: 0;">
+    Each finding has a weight; the weights are summed and passed through a saturating curve so a
+    few mediums cannot outweigh a critical. <span class="mono">{{ risk_breakdown.formula }}</span>
+  </p>
+  <table>
+    <thead>
+      <tr><th>Severity</th><th>Count</th><th>Weight</th><th>Points</th><th>Share of score</th></tr>
+    </thead>
+    <tbody>
+      {% for row in risk_breakdown.contributions %}
+        <tr>
+          <td><span class="badge {{ row.severity }}">{{ severity_labels[row.severity] }}</span></td>
+          <td class="mono">{{ row.count }}</td>
+          <td class="mono">{{ row.weight }}</td>
+          <td class="mono">{{ row.points }}</td>
+          <td>
+            <div class="bar"><span style="width: {{ row.share }}%"></span></div>
+            <span class="mono muted">{{ row.share }}%</span>
+          </td>
+        </tr>
+      {% endfor %}
+      <tr>
+        <th>Total</th>
+        <th class="mono">{{ findings|length }}</th>
+        <th></th>
+        <th class="mono">{{ risk_breakdown.total_weight }}</th>
+        <th class="mono">→ {{ risk_breakdown.score }}/100</th>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
 <h2>Findings</h2>
 <div class="filters row no-print" style="margin-bottom: 14px;">
   <button class="active" data-sev="all">All</button>

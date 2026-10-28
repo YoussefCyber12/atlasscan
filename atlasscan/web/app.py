@@ -81,6 +81,8 @@ def create_app(data_dir: Path | str | None = None) -> FastAPI:
             result=result.to_dict(),
             counts=result.counts(),
             risk=result.risk_score(),
+            risk_breakdown=result.risk_breakdown(),
+            coverage=result.coverage.to_dict(),
             findings=[f.to_dict() for f in result.sorted_findings()],
         )
 

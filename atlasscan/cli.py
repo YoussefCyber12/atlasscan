@@ -137,27 +137,56 @@ def print_findings(result: ScanResult, verbose: bool) -> None:
             console.print(Panel(body, border_style="dim"))
 
 
-def print_summary(result: ScanResult, report_path: Optional[Path]) -> None:
+def print_summary(result: ScanResult, report_path: Optional[Path], verbose: bool = False) -> None:
     counts = result.counts()
     parts = []
     for sev in ("critical", "high", "medium", "low", "info"):
         if counts[sev]:
             parts.append(f"[{SEVERITY_COLOR[sev]}]{counts[sev]} {SEVERITY_LABELS[sev].lower()}[/]")
-    summary = " · ".join(parts) if parts else "clean"
+    summary = " · ".join(parts) if parts else "no findings"
 
     risk = result.risk_score()
     risk_color = "green" if risk < 25 else ("yellow" if risk < 60 else "red")
+    coverage = result.coverage
 
     lines = [
         f"[bold]{result.target}[/bold]",
         f"Risk score: [{risk_color}]{risk}/100[/{risk_color}]   Findings: {len(result.findings)}",
         summary,
-        f"Requests: {result.stats.requests}   Pages: {result.stats.pages_crawled}   "
-        f"Duration: {result.stats.duration}s",
+        f"Requests: {result.stats.requests}   Pages: {coverage.pages_crawled}"
+        f"/{coverage.pages_limit}   Duration: {result.stats.duration}s",
+        f"Coverage: {coverage.parameters_discovered} parameter(s) found, "
+        f"{coverage.parameters_tested} tested · {coverage.forms_discovered} form(s)",
     ]
     if report_path:
         lines.append(f"Report: {report_path}")
     console.print(Panel("\n".join(lines), title="AtlasScan", border_style=risk_color))
+
+    if verbose:
+        table = Table(title="Risk score breakdown", header_style="bold")
+        table.add_column("Severity")
+        table.add_column("Count", justify="right")
+        table.add_column("Weight", justify="right")
+        table.add_column("Points", justify="right")
+        table.add_column("Share", justify="right")
+        breakdown = result.risk_breakdown()
+        for row in breakdown["contributions"]:
+            if not row["count"]:
+                continue
+            table.add_row(
+                Text(SEVERITY_LABELS[row["severity"]], style=SEVERITY_COLOR[row["severity"]]),
+                str(row["count"]),
+                str(row["weight"]),
+                str(row["points"]),
+                f"{row['share']}%",
+            )
+        table.add_row("Total", str(len(result.findings)), "", str(breakdown["total_weight"]),
+                      f"{breakdown['score']}/100")
+        console.print(table)
+        console.print(f"[dim]{breakdown['formula']}[/dim]")
+
+    for warning in coverage.warnings:
+        console.print(f"[yellow]! Coverage warning:[/yellow] {warning}")
 
 
 def cmd_scan(args: argparse.Namespace) -> int:
@@ -227,7 +256,7 @@ def cmd_scan(args: argparse.Namespace) -> int:
         print(result.to_json())
     else:
         print_findings(result, verbose=args.verbose)
-        print_summary(result, report_path)
+        print_summary(result, report_path, verbose=args.verbose)
         console.print(f"[dim]JSON result: {stored}[/dim]")
 
     return exit_code_for(result, args.fail_on)

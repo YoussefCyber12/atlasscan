@@ -51,19 +51,72 @@ Report: ~/.vulnscout/scans/4f1c9a2d8b31.html
 
 ## Install
 
+**Option A — one command (no clone)**
+
+```bash
+pip install git+https://github.com/YoussefCyber12/vulnscout.git
+vulnscout --help
+```
+
+**Option B — clone + editable install (recommended for development)**
+
 ```bash
 git clone https://github.com/YoussefCyber12/vulnscout.git
-cd vulnscout
+cd vulnscout                     # <- repository root
 python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# Linux / macOS
-source .venv/bin/activate
-
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e .
+vulnscout --help
 ```
 
 Python 3.9+ is required. `pip install -e ".[dev]"` adds the test/lint tooling.
+
+### ⚠️ Run pip from the repository root
+
+`pip install -e .` must run in the folder that contains `pyproject.toml`:
+
+```text
+vulnscout/            <- repository root: run pip HERE (pyproject.toml lives here)
+├── pyproject.toml
+├── README.md
+├── vulnscout/        <- Python package: do NOT run pip here
+│   ├── cli.py
+│   └── ...
+├── tests/
+└── examples/
+```
+
+A very common mistake is cloning and then `cd vulnscout` twice. If you see:
+
+```text
+ERROR: file:///home/you/vulnscout/vulnscout does not appear to be a Python project:
+neither 'setup.py' nor 'pyproject.toml' found
+```
+
+you are one level too deep. Fix it with:
+
+```bash
+cd ..                 # or: cd ~/vulnscout
+ls pyproject.toml     # this must exist
+pip install -e .
+```
+
+### Verify the install
+
+```bash
+which vulnscout       # should point inside your virtualenv
+vulnscout modules     # lists all 11 modules
+```
+
+### Update / uninstall
+
+```bash
+# update
+cd vulnscout && git pull && pip install -e .
+
+# remove
+pip uninstall vulnscout
+```
 
 ## Usage
 

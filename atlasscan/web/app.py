@@ -12,6 +12,7 @@ from fastapi.templating import Jinja2Templates
 
 from atlasscan import __version__
 from atlasscan.core.context import ScanOptions
+from atlasscan.core.cookies import parse_cookie_string
 from atlasscan.core.report import SEVERITY_LABELS, TEMPLATES_DIR
 from atlasscan.core.scanner import normalize_target, run_scan
 from atlasscan.core.storage import Storage
@@ -47,6 +48,8 @@ def create_app(data_dir: Path | str | None = None) -> FastAPI:
         request: Request,
         target: str = Form(...),
         authorized: Optional[str] = Form(None),
+        cookie: Optional[str] = Form(None),
+        cookie_jar: Optional[str] = Form(None),
     ):
         if authorized not in ("on", "true", "1", "yes"):
             return render(
@@ -60,7 +63,13 @@ def create_app(data_dir: Path | str | None = None) -> FastAPI:
         except ValueError as exc:
             return render(request, "index.html", scans=storage.list(), error=str(exc))
 
-        job_id = _start_job(normalized, storage, jobs, jobs_lock, semaphore)
+        try:
+            cookies = parse_cookie_string(cookie or "")
+        except ValueError as exc:
+            return render(request, "index.html", scans=storage.list(), error=str(exc))
+
+        options = ScanOptions(cookies=cookies, cookie_jar=cookie_jar or None)
+        job_id = _start_job(normalized, storage, jobs, jobs_lock, semaphore, options=options)
         return RedirectResponse(url=f"/job/{job_id}", status_code=303)
 
     @app.get("/job/{job_id}", response_class=HTMLResponse)
@@ -121,12 +130,19 @@ def create_app(data_dir: Path | str | None = None) -> FastAPI:
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+        try:
+            cookies = parse_cookie_string(payload.get("cookies") or "")
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
         modules = payload.get("modules")
         options = ScanOptions(
             crawl=bool(payload.get("crawl", True)),
             time_based=bool(payload.get("time_based", False)),
             max_pages=int(payload.get("max_pages", 25)),
             delay=float(payload.get("delay", 0.15)),
+            cookies=cookies,
+            cookie_jar=payload.get("cookie_jar") or None,
         )
         job_id = _start_job(normalized, storage, jobs, jobs_lock, semaphore, modules, options)
         return JSONResponse({"job_id": job_id, "status": "running"}, status_code=202)

@@ -15,6 +15,7 @@ from atlasscan import __version__
 from atlasscan.config import SEVERITY_COLOR
 from atlasscan.core.baseline import BaselineError, apply_baseline, load_baseline
 from atlasscan.core.context import ScanOptions
+from atlasscan.core.cookies import parse_cookie_string
 from atlasscan.core.models import ScanResult
 from atlasscan.core.report import SEVERITY_LABELS, render_html, write_report
 from atlasscan.core.scanner import normalize_target, run_scan
@@ -48,6 +49,16 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--insecure", action="store_true", help="do not verify TLS certificates")
     scan.add_argument("--time-based", action="store_true", help="enable slow time-based SQL injection checks")
     scan.add_argument("--proxy", help="HTTP(S) proxy, e.g. http://127.0.0.1:8080")
+    scan.add_argument(
+        "--cookie",
+        metavar="NAME=VALUE[; ...]",
+        help="session cookies for authenticated scans, e.g. 'session=abc; csrf=xyz'",
+    )
+    scan.add_argument(
+        "--cookie-jar",
+        metavar="FILE",
+        help="Netscape cookies.txt or JSON cookie export (Playwright/DevTools)",
+    )
     scan.add_argument("-H", "--header", action="append", default=[], metavar="NAME: VALUE", help="extra request header")
     scan.add_argument("-o", "--output", help="write the report to this path (.html, .json or .sarif)")
     scan.add_argument("--json", action="store_true", help="print the raw JSON result to stdout")
@@ -162,7 +173,8 @@ def print_summary(result: ScanResult, report_path: Optional[Path], verbose: bool
         f"Requests: {result.stats.requests}   Pages: {coverage.pages_crawled}"
         f"/{coverage.pages_limit}   Duration: {result.stats.duration}s",
         f"Coverage: {coverage.parameters_discovered} parameter(s) found, "
-        f"{coverage.parameters_tested} tested · {coverage.forms_discovered} form(s)",
+        f"{coverage.parameters_tested} tested · {coverage.forms_discovered} form(s)"
+        + (" · authenticated" if coverage.authenticated else ""),
     ]
     if report_path:
         lines.append(f"Report: {report_path}")
@@ -212,6 +224,12 @@ def cmd_scan(args: argparse.Namespace) -> int:
 
     headers = parse_headers(args.header)
 
+    try:
+        cookies = parse_cookie_string(args.cookie) if args.cookie else {}
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        return 2
+
     options = ScanOptions(
         crawl=not args.no_crawl,
         max_pages=args.max_pages,
@@ -222,6 +240,8 @@ def cmd_scan(args: argparse.Namespace) -> int:
         time_based=args.time_based,
         proxy=args.proxy,
         headers=headers,
+        cookies=cookies,
+        cookie_jar=args.cookie_jar,
     )
 
     try:

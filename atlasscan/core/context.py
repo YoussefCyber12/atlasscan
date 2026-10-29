@@ -21,6 +21,8 @@ class ScanOptions:
     active: bool = True
     proxy: str | None = None
     headers: dict[str, str] = field(default_factory=dict)
+    cookies: dict[str, str] = field(default_factory=dict)
+    cookie_jar: str | None = None
 
 
 @dataclass

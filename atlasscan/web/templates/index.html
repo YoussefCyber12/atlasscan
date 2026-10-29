@@ -11,6 +11,20 @@
       </div>
       <button type="submit">Start scan</button>
     </form>
+    <details style="margin-top: 12px;">
+      <summary class="muted" style="cursor: pointer; font-size: 13px;">Authenticated scan (optional)</summary>
+      <div class="row" style="margin-top: 10px;">
+        <div style="flex: 1 1 320px;">
+          <input type="text" name="cookie" placeholder="Cookie header: session=abc; csrf=xyz" autocomplete="off">
+        </div>
+        <div style="flex: 1 1 240px;">
+          <input type="text" name="cookie_jar" placeholder="or cookie file: C:\path\cookies.txt" autocomplete="off">
+        </div>
+      </div>
+      <p class="muted" style="margin: 8px 0 0; font-size: 12px;">
+        Start on an authenticated URL. Cookies stay on this machine and are not saved with the report.
+      </p>
+    </details>
     <label class="muted" style="display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: 13px;">
       <input type="checkbox" name="authorized" required>
       I confirm I am authorized to test this target.

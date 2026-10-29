@@ -82,6 +82,7 @@ class Coverage:
     params_limit: int = 0
     params_truncated: bool = False
     forms_discovered: int = 0
+    authenticated: bool = False
     modules_run: list[str] = field(default_factory=list)
     modules_failed: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)

@@ -41,3 +41,13 @@ def test_unknown_scan_returns_404(tmp_path):
     client = TestClient(create_app(tmp_path))
     assert client.get("/scan/nope").status_code == 404
     assert client.get("/api/scans/nope").status_code == 404
+
+
+def test_api_rejects_invalid_cookie_string(tmp_path):
+    client = TestClient(create_app(tmp_path))
+    response = client.post(
+        "/api/scan",
+        json={"target": "https://example.test/", "authorized": True, "cookies": "broken"},
+    )
+    assert response.status_code == 400
+    assert "cookie" in response.json()["detail"].lower()

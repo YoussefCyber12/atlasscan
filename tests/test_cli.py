@@ -40,6 +40,14 @@ def test_parser_scan_baseline_and_sarif_output():
     assert args.output == "out.sarif"
 
 
+def test_parser_scan_cookie_flags():
+    args = build_parser().parse_args(
+        ["scan", "https://example.test", "--cookie", "session=abc", "--cookie-jar", "c.txt"]
+    )
+    assert args.cookie == "session=abc"
+    assert args.cookie_jar == "c.txt"
+
+
 def test_parse_headers():
     assert parse_headers(["X-Test: 1", "Authorization: Bearer abc"]) == {
         "X-Test": "1",

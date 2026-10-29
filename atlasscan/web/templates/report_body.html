@@ -29,6 +29,7 @@
     <dt>Pages crawled</dt><dd>{{ result.stats.pages_crawled }}</dd>
     <dt>Duration</dt><dd>{{ result.stats.duration }}s</dd>
     <dt>Modules</dt><dd>{{ result.modules|join(", ") }}</dd>
+    <dt>Authentication</dt><dd>{{ "session cookie" if coverage.authenticated else "none" }}</dd>
     <dt>Tool</dt><dd>AtlasScan {{ result.tool_version }}</dd>
   </dl>
 </div>

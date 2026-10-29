@@ -140,6 +140,10 @@ atlasscan scan https://example.com --authorized -o reports/example.sarif
 atlasscan scan https://example.com --authorized \
   --baseline reports/example.json --fail-on high -o reports/example.html
 
+# Scan behind a login with a session cookie
+atlasscan scan https://app.example.com/dashboard --authorized \
+  --cookie "session=abc123; csrf=xyz" -o reports/private.html
+
 # Verbose findings (description + evidence + remediation)
 atlasscan scan https://example.com --authorized --verbose
 
@@ -165,6 +169,8 @@ atlasscan dashboard --port 8000
 | `--insecure`         | off          | Disable TLS verification                                 |
 | `--time-based`       | off          | Enable slow time-based SQLi checks                       |
 | `--proxy`            | –            | Route traffic through a proxy (e.g. Burp at `:8080`)     |
+| `--cookie`           | –            | Session cookies: `name=value; name2=value2`              |
+| `--cookie-jar`       | –            | Netscape `cookies.txt` or JSON cookie export file        |
 | `-H, --header`       | –            | Extra request header, repeatable                         |
 | `-o, --output`       | –            | Report path (`.html`, `.json` or `.sarif`)               |
 | `--baseline`         | –            | JSON report or scan id; only new findings are reported   |
@@ -173,6 +179,43 @@ atlasscan dashboard --port 8000
 | `--fail-on`          | `none`       | Exit 1 on findings at/above `low\|medium\|high\|critical` |
 | `-q, --quiet`        | off          | No progress output                                       |
 | `--data-dir`         | `~/.atlasscan` | Where scans are stored                                 |
+
+### Scanning behind a login
+
+Most of an application lives behind authentication. AtlasScan does **not** automate login forms
+(that would mean handling your credentials and invite account lockouts); instead you give it a
+session cookie, and every crawl and module request reuses that session.
+
+1. Log in to the target with a **dedicated test account** that has the least privilege needed.
+2. Copy the session cookie from your browser: DevTools → **Application → Cookies** → the
+   cookie name/value (or copy the whole `Cookie:` request header from the Network tab).
+3. Pass it to the scanner:
+
+```bash
+# Inline, straight from the Cookie header
+atlasscan scan https://app.example.com/dashboard --authorized \
+  --cookie "session=abc123; csrf=xyz"
+
+# Or load a cookie file (Netscape cookies.txt, or a JSON export from
+# Playwright / a browser extension)
+atlasscan scan https://app.example.com/dashboard --authorized \
+  --cookie-jar ./cookies.txt --fail-on high -o reports/private.html
+```
+
+JSON cookie files may be a bare list or a Playwright storage-state object:
+
+```json
+{"cookies": [{"name": "session", "value": "abc123", "domain": "app.example.com", "path": "/"}]}
+```
+
+Things to keep in mind:
+
+- **Start the scan on an authenticated URL** (e.g. `/dashboard`), not the login page.
+- **Cookies expire.** If the start page still looks like a login screen, AtlasScan adds a
+  coverage warning instead of reporting a false "clean" result.
+- **Use one session per scan**, and log out / rotate the token when you are done.
+- You can combine this with `--proxy http://127.0.0.1:8080` to review the traffic in Burp.
+- Only ever do this on accounts and systems you are authorized to test.
 
 ### Try it locally
 
@@ -338,6 +381,7 @@ atlasscan/
 │   ├── report.py          # HTML/JSON/SARIF rendering
 │   ├── sarif.py           # SARIF 2.1.0 exporter
 │   ├── baseline.py        # report only findings new since a previous scan
+│   ├── cookies.py         # session cookie parsing (inline, cookies.txt, JSON)
 │   ├── storage.py         # JSON-per-scan storage
 │   └── utils.py           # URL helpers + SQL error signatures
 ├── modules/               # one file per check
@@ -393,7 +437,7 @@ network access is required.
 - [ ] Wordlist-based content discovery
 - [x] SARIF output for GitHub code scanning
 - [x] Scan comparison / diffing between runs (`--baseline`)
-- [ ] Authenticated scans with a cookie jar
+- [x] Authenticated scans with a cookie jar
 - [ ] Publish to PyPI and GHCR
 
 ## Disclaimer

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import time
 from datetime import datetime, timezone
 from typing import Callable, Optional
@@ -13,6 +14,19 @@ from atlasscan.core.utils import normalize_url, param_names
 from atlasscan.modules import Module, resolve_modules
 
 ProgressFn = Callable[[str, str], None]
+
+LOGIN_PATH_HINTS = ("login", "signin", "sign-in", "sign_in", "logon", "session/new")
+PASSWORD_INPUT_RE = re.compile(r"<input[^>]*type\s*=\s*['\"]?password", re.IGNORECASE)
+
+
+def _looks_like_login(response: object) -> bool:
+    """Best-effort check that a page with a session cookie is still a login screen."""
+    url = getattr(response, "url", "") or ""
+    text = getattr(response, "text", "") or ""
+    path = urlparse(url).path.lower()
+    if not any(hint in path for hint in LOGIN_PATH_HINTS):
+        return False
+    return bool(PASSWORD_INPUT_RE.search(text))
 
 
 def normalize_target(target: str) -> str:
@@ -59,6 +73,8 @@ def run_scan(
         delay=options.delay,
         verify=options.verify,
         extra_headers=options.headers,
+        cookies=options.cookies,
+        cookie_jar=options.cookie_jar,
         proxies={"http": options.proxy, "https": options.proxy} if options.proxy else None,
         logger=log,
     )
@@ -77,6 +93,15 @@ def run_scan(
             pages = [base_url, *[p for p in pages if p != base_url]]
         else:
             pages, forms = [base_url], []
+
+        if options.cookies or options.cookie_jar:
+            probe = client.get(base_url)
+            if probe is not None and _looks_like_login(probe):
+                result.coverage.warnings.append(
+                    "A session cookie was supplied, but the start page still looks like a login "
+                    "screen. The session may be expired or scoped to another domain, so "
+                    "authenticated areas were probably not scanned."
+                )
 
         result.stats.pages_crawled = len(pages)
         discovered_params = {(page, name) for page in pages for name in param_names(page)}
@@ -134,6 +159,7 @@ def _fill_coverage(
     coverage.params_limit = options.max_params
     coverage.params_truncated = ctx.budget_exhausted
     coverage.forms_discovered = len(ctx.forms)
+    coverage.authenticated = bool(options.cookies or options.cookie_jar)
     coverage.modules_run = [m.name for m in modules if m.name not in coverage.modules_failed]
 
     ran = set(coverage.modules_run)

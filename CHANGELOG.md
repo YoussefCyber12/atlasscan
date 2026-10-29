@@ -4,6 +4,19 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 uses [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-10-30
+
+### Added
+
+- Authenticated scans: `--cookie "name=value; ..."` and `--cookie-jar FILE` (Netscape
+  `cookies.txt` or JSON exports, including Playwright storage state). Cookies are applied to the
+  shared `requests.Session`, so every crawl and module request stays authenticated.
+- `coverage.authenticated` in JSON/HTML and a warning when a supplied session still lands on a
+  login screen, so a stale cookie is never reported as a clean authenticated scan.
+- Dashboard: optional cookie/cookie-jar fields on the start form, and `POST /api/scan` accepts
+  `cookies` and `cookie_jar` (400 on an invalid cookie string).
+- README section "Scanning behind a login" with safe handling guidance.
+
 ## [0.2.0] - 2026-10-29
 
 ### Added

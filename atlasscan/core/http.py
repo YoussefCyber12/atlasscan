@@ -11,6 +11,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from atlasscan.config import DEFAULT_UA
+from atlasscan.core.cookies import load_cookie_file
 
 
 class HttpClient:
@@ -23,6 +24,8 @@ class HttpClient:
         retries: int = 2,
         proxies: Optional[dict[str, str]] = None,
         extra_headers: Optional[dict[str, str]] = None,
+        cookies: Optional[dict[str, str]] = None,
+        cookie_jar: Optional[str] = None,
         logger: Optional[Callable[[str], None]] = None,
     ) -> None:
         self.timeout = timeout
@@ -44,6 +47,17 @@ class HttpClient:
         )
         if extra_headers:
             self.session.headers.update(extra_headers)
+
+        if cookies:
+            self.session.cookies.update(cookies)
+        if cookie_jar:
+            for cookie in load_cookie_file(cookie_jar):
+                self.session.cookies.set(
+                    cookie["name"],
+                    cookie["value"],
+                    domain=cookie.get("domain", ""),
+                    path=cookie.get("path") or "/",
+                )
 
         if proxies:
             self.session.proxies.update(proxies)

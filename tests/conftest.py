@@ -99,6 +99,17 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(302)
             self.send_header("Location", target)
             self.end_headers()
+        elif path == "/login":
+            self._send(
+                200,
+                "<html><body><h1>Sign in</h1>"
+                "<form method='post' action='/login'>"
+                "<input type='text' name='user'>"
+                "<input type='password' name='pass'>"
+                "<button type='submit'>Log in</button></form></body></html>",
+            )
+        elif path == "/echo-cookie":
+            self._send(200, f"<html><body>{self.headers.get('Cookie', '')}</body></html>")
         elif path == "/.git/HEAD":
             # Exists but is protected -> must be reported as "remove it from the docroot".
             self._send(403, "forbidden")

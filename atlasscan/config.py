@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from atlasscan import __version__
+
 SEVERITIES = ("critical", "high", "medium", "low", "info")
 
 SEVERITY_WEIGHT = {
@@ -18,4 +20,4 @@ SEVERITY_COLOR = {
     "info": "blue",
 }
 
-DEFAULT_UA = "AtlasScan/0.1.0 (+https://github.com/YoussefCyber12/atlasscan)"
+DEFAULT_UA = f"AtlasScan/{__version__} (+https://github.com/YoussefCyber12/atlasscan)"

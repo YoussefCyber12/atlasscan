@@ -5,6 +5,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from atlasscan.core.models import ScanResult
+from atlasscan.core.sarif import render_sarif
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "web" / "templates"
 
@@ -40,10 +41,14 @@ def render_html(result: ScanResult) -> str:
 
 
 def write_report(result: ScanResult, path: str | Path) -> Path:
+    """Write HTML, JSON or SARIF based on the file extension."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    if path.suffix.lower() in (".html", ".htm"):
+    suffix = path.suffix.lower()
+    if suffix in (".html", ".htm"):
         path.write_text(render_html(result), encoding="utf-8")
+    elif suffix == ".sarif":
+        path.write_text(render_sarif(result), encoding="utf-8")
     else:
         path.write_text(result.to_json(), encoding="utf-8")
     return path

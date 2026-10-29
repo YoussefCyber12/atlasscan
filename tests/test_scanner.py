@@ -16,6 +16,7 @@ MODULES = [
     "tech",
     "forms",
     "files",
+    "methods",
 ]
 
 
@@ -76,6 +77,11 @@ def test_redirect_module(result):
 
 def test_forms_module(result):
     assert "POST form without an anti-CSRF token" in names(result)
+
+
+def test_methods_module(result):
+    assert "TRACE method enabled (cross-site tracing)" in names(result)
+    assert "Dangerous HTTP methods advertised" in names(result)
 
 
 def test_risk_score_and_counts(result):

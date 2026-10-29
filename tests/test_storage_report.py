@@ -73,12 +73,24 @@ def test_render_html_surfaces_coverage_warnings():
     assert "No URL parameters were discovered" in html
 
 
+def test_render_html_surfaces_baseline_suppression():
+    result = sample_result()
+    result.baseline_scan_id = "abc123"
+    result.suppressed = 4
+    html = render_html(result)
+    assert "Baseline applied" in html
+    assert "abc123" in html
+    assert "4 finding(s)" in html
+
+
 def test_write_report_dispatch(tmp_path):
     result = sample_result()
     json_path = write_report(result, tmp_path / "out.json")
     html_path = write_report(result, tmp_path / "out.html")
+    sarif_path = write_report(result, tmp_path / "out.sarif")
     assert json_path.read_text(encoding="utf-8").startswith("{")
     assert html_path.read_text(encoding="utf-8").lstrip().startswith("<!doctype html>")
+    assert '"version": "2.1.0"' in sarif_path.read_text(encoding="utf-8")
 
 
 def test_risk_score_ordering():

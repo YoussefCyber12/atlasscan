@@ -7,6 +7,7 @@ from atlasscan.modules.files import FilesModule
 from atlasscan.modules.forms import FormsModule
 from atlasscan.modules.headers import HeadersModule
 from atlasscan.modules.jwt import JwtModule
+from atlasscan.modules.methods import MethodsModule
 from atlasscan.modules.redirect import RedirectModule
 from atlasscan.modules.sqli import SqliModule
 from atlasscan.modules.tech import TechModule
@@ -24,6 +25,7 @@ ALL_MODULES: dict[str, type[Module]] = {
         TlsModule,
         FormsModule,
         JwtModule,
+        MethodsModule,
         XssModule,
         SqliModule,
         RedirectModule,
@@ -39,6 +41,7 @@ DEFAULT_MODULES = [
     "tls",
     "forms",
     "jwt",
+    "methods",
     "xss",
     "sqli",
     "redirect",

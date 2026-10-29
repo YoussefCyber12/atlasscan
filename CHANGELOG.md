@@ -4,10 +4,18 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.0] - 2026-10-29
 
 ### Added
 
+- SARIF 2.1.0 output (`-o report.sarif`) with rules, severities mapped to
+  `error`/`warning`/`note`, `security-severity` and stable partial fingerprints, ready for
+  GitHub code scanning.
+- `--baseline PATH|SCAN_ID`: report and fail only on findings that are new since a previous
+  scan; the HTML report shows a "Baseline applied" panel with the suppressed count.
+- New `methods` module: dangerous advertised methods (`PUT`/`DELETE`/`PATCH`) and
+  TRACE/cross-site tracing.
+- `Dockerfile` (slim, non-root) plus CI/Docker/SARIF usage documentation.
 - `coverage` block in JSON reports and a Coverage section in the HTML report: pages crawled vs
   limit, parameters discovered/tested, forms, failed modules and explicit warnings.
 - `risk` breakdown in JSON and a "How the risk score is calculated" table in HTML.

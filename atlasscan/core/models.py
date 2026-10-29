@@ -7,6 +7,7 @@ import math
 import time
 from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import parse_qsl, urlparse
 
 from atlasscan import __version__
 from atlasscan.config import SEVERITY_WEIGHT
@@ -35,7 +36,15 @@ class Finding:
 
     @property
     def id(self) -> str:
-        raw = f"{self.module}|{self.name}|{self.url}"
+        """Stable fingerprint: payload values and query order must not change it."""
+        parsed = urlparse(self.url)
+        params = ",".join(
+            sorted({name for name, _ in parse_qsl(parsed.query, keep_blank_values=True)})
+        )
+        raw = (
+            f"{self.module}|{self.name}|"
+            f"{parsed.scheme}://{parsed.netloc}{parsed.path}|{params}"
+        )
         return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:10]
 
     @property
@@ -108,6 +117,8 @@ class ScanResult:
     modules: list[str] = field(default_factory=list)
     tool_version: str = __version__
     scan_id: str = ""
+    baseline_scan_id: str = ""
+    suppressed: int = 0
 
     def __post_init__(self) -> None:
         if not self.scan_id:
@@ -174,6 +185,8 @@ class ScanResult:
             "risk": self.risk_breakdown(),
             "risk_score": self.risk_score(),
             "counts": self.counts(),
+            "baseline_scan_id": self.baseline_scan_id,
+            "suppressed": self.suppressed,
             "findings": [f.to_dict() for f in self.sorted_findings()],
         }
 
@@ -192,6 +205,8 @@ class ScanResult:
             modules=data.get("modules", []),
             tool_version=data.get("tool_version", __version__),
             scan_id=data.get("scan_id", ""),
+            baseline_scan_id=data.get("baseline_scan_id", ""),
+            suppressed=int(data.get("suppressed", 0) or 0),
         )
         for item in data.get("findings", []):
             item = {k: v for k, v in item.items() if k != "id"}

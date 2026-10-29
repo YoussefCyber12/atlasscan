@@ -62,6 +62,13 @@ class Handler(BaseHTTPRequestHandler):
         self.rfile.read(length)
         self._send(200, "<html><body>ok</body></html>")
 
+    def do_OPTIONS(self) -> None:
+        self._send(200, "", {"Allow": "GET, HEAD, OPTIONS, PUT, TRACE"})
+
+    def do_TRACE(self) -> None:
+        body = f"TRACE {self.path} HTTP/1.1\r\nHost: {self.headers.get('Host', '')}\r\n\r\n"
+        self._send(200, body)
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         path = parsed.path

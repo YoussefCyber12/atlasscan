@@ -32,6 +32,14 @@ def test_parser_modules_command():
     assert args.command == "modules"
 
 
+def test_parser_scan_baseline_and_sarif_output():
+    args = build_parser().parse_args(
+        ["scan", "https://example.test", "--baseline", "abc123", "-o", "out.sarif"]
+    )
+    assert args.baseline == "abc123"
+    assert args.output == "out.sarif"
+
+
 def test_parse_headers():
     assert parse_headers(["X-Test: 1", "Authorization: Bearer abc"]) == {
         "X-Test": "1",
@@ -39,6 +47,18 @@ def test_parse_headers():
     }
     with pytest.raises(SystemExit):
         parse_headers(["broken"])
+
+
+def test_exit_code_ignores_baselined_findings():
+    from atlasscan.core.baseline import apply_baseline
+
+    old = result_with("critical")
+    new = result_with("critical")
+
+    apply_baseline(new, old)
+
+    assert new.findings == []
+    assert exit_code_for(new, "high") == 0
 
 
 @pytest.mark.parametrize(

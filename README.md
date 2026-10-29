@@ -18,7 +18,8 @@ AtlasScan
 https://example.com/
 Risk score: 42.3/100   Findings: 9
 1 critical · 2 high · 3 medium · 2 low · 1 info
-Requests: 61   Pages: 12   Duration: 8.4s
+Requests: 61   Pages: 12/25   Duration: 8.4s
+Coverage: 18 parameter(s) found, 18 tested · 4 form(s)
 Report: ~/.atlasscan/scans/4f1c9a2d8b31.html
 ```
 
@@ -41,13 +42,14 @@ Report: ~/.atlasscan/scans/4f1c9a2d8b31.html
 | `files`     | Exposed `.git`, `.env`, backups, `phpinfo`, Actuator, Swagger, …               |
 | `tls`       | Certificate validity/expiry, TLS 1.0/1.1 support                               |
 | `forms`     | POST forms without anti-CSRF tokens                                            |
+| `methods`   | Dangerous methods (`PUT`/`DELETE`/`PATCH`) and TRACE/XST                      |
 | `tech`      | Technology fingerprinting and secrets in HTML comments                         |
 
 * **Fast to run, easy to read** — ~2k lines of plain Python, no plugin magic.
 * **Polite by default** — rate limiting, retries, capped crawl, conservative payloads.
-* **Two outputs** — self-contained HTML report and machine-readable JSON.
+* **Three outputs** — self-contained HTML, machine-readable JSON and SARIF 2.1.0.
 * **Local dashboard** — browse scans, filter findings, launch new scans.
-* **CI friendly** — `--fail-on high` exits non-zero, so it slots into a pipeline.
+* **CI friendly** — `--fail-on high`, `--baseline` for "only new issues", SARIF upload.
 
 ## Install
 
@@ -105,7 +107,7 @@ pip install -e .
 
 ```bash
 which atlasscan       # should point inside your virtualenv
-atlasscan modules     # lists all 11 modules
+atlasscan modules     # lists all 12 modules
 ```
 
 ### Update / uninstall
@@ -130,8 +132,13 @@ atlasscan scan https://example.com --authorized --fail-on high
 # Only run selected modules
 atlasscan scan https://example.com -m jwt,headers,cors --authorized
 
-# Write a specific report
+# Write a specific report (HTML, JSON or SARIF by extension)
 atlasscan scan https://example.com --authorized -o reports/example.html
+atlasscan scan https://example.com --authorized -o reports/example.sarif
+
+# Only report findings that are new since the previous scan
+atlasscan scan https://example.com --authorized \
+  --baseline reports/example.json --fail-on high -o reports/example.html
 
 # Verbose findings (description + evidence + remediation)
 atlasscan scan https://example.com --authorized --verbose
@@ -159,7 +166,8 @@ atlasscan dashboard --port 8000
 | `--time-based`       | off          | Enable slow time-based SQLi checks                       |
 | `--proxy`            | –            | Route traffic through a proxy (e.g. Burp at `:8080`)     |
 | `-H, --header`       | –            | Extra request header, repeatable                         |
-| `-o, --output`       | –            | Report path (`.html` or `.json`)                         |
+| `-o, --output`       | –            | Report path (`.html`, `.json` or `.sarif`)               |
+| `--baseline`         | –            | JSON report or scan id; only new findings are reported   |
 | `--json`             | off          | Print JSON to stdout                                     |
 | `-v, --verbose`      | off          | Print description, evidence and remediation per finding  |
 | `--fail-on`          | `none`       | Exit 1 on findings at/above `low\|medium\|high\|critical` |
@@ -180,6 +188,58 @@ atlasscan scan http://127.0.0.1:8080 --authorized -o demo-report.html
 ```
 
 The demo server is intentionally insecure and must never be exposed to a network.
+
+## CI and automation
+
+### Only fail on new issues (baseline)
+
+```bash
+# First run: save a baseline
+atlasscan scan https://staging.example.com --authorized -o baseline.json
+
+# Later runs: report and fail only on findings that are new since the baseline
+atlasscan scan https://staging.example.com --authorized \
+  --baseline baseline.json --fail-on high -o reports/latest.html
+```
+
+Findings are matched by module + name + URL, so line/order changes do not resurrect them.
+`--fail-on` evaluates only the reported (new) findings, and the HTML report shows a
+"Baseline applied" panel with the count of hidden findings. Passing a saved scan id works too:
+`--baseline 4f1c9a2d8b31`.
+
+### GitHub code scanning (SARIF)
+
+```yaml
+permissions:
+  contents: read
+  security-events: write
+
+steps:
+  - run: pip install git+https://github.com/YoussefCyber12/atlasscan.git
+  - name: Scan
+    run: atlasscan scan https://staging.example.com --authorized --fail-on high -o atlasscan.sarif
+  - uses: github/codeql-action/upload-sarif@v3
+    if: always()
+    with:
+      sarif_file: atlasscan.sarif
+```
+
+The SARIF output maps severities to `error`/`warning`/`note`, sets `security-severity` for
+GitHub's ranking, and uses stable partial fingerprints so results do not duplicate between runs.
+
+### Docker
+
+```bash
+docker build -t atlasscan .
+docker run --rm atlasscan scan https://example.com --authorized
+
+# keep reports on the host
+docker run --rm -v "$PWD/reports:/home/atlasscan/.atlasscan" \
+  atlasscan scan https://example.com --authorized -o /home/atlasscan/.atlasscan/report.html
+```
+
+Inside the container `127.0.0.1` is the container itself; use `--network host` (Linux) or
+`host.docker.internal` (Docker Desktop) to reach a service on your machine.
 
 ## Reading the report
 
@@ -275,12 +335,15 @@ atlasscan/
 │   ├── crawler.py         # stdlib HTML crawler (links + forms)
 │   ├── models.py          # Finding / ScanResult
 │   ├── scanner.py         # orchestration
-│   ├── report.py          # HTML/JSON rendering
+│   ├── report.py          # HTML/JSON/SARIF rendering
+│   ├── sarif.py           # SARIF 2.1.0 exporter
+│   ├── baseline.py        # report only findings new since a previous scan
 │   ├── storage.py         # JSON-per-scan storage
 │   └── utils.py           # URL helpers + SQL error signatures
 ├── modules/               # one file per check
 └── web/                   # FastAPI dashboard + Jinja templates
 tests/                     # local deliberately-vulnerable test server
+Dockerfile                 # slim non-root image
 ```
 
 Adding a module is intentionally boring:
@@ -328,8 +391,10 @@ network access is required.
 - [ ] POST parameter and JSON body testing
 - [ ] Blind SSRF / XXE / SSTI checks
 - [ ] Wordlist-based content discovery
-- [ ] SARIF output for GitHub code scanning
-- [ ] Scan comparison / diffing between runs
+- [x] SARIF output for GitHub code scanning
+- [x] Scan comparison / diffing between runs (`--baseline`)
+- [ ] Authenticated scans with a cookie jar
+- [ ] Publish to PyPI and GHCR
 
 ## Disclaimer
 
@@ -355,6 +420,13 @@ atlasscan dashboard
 ```
 
 تفحص: ترويسات الأمان، الكوكيز، CORS، ثغرات JWT، XSS المنعكس، SQLi، التحويل المفتوح،
-ملفات حساسة مكشوفة، شهادات TLS، ونماذج بدون CSRF.
+ملفات حساسة مكشوفة، شهادات TLS، نماذج بدون CSRF، وطرق HTTP الخطيرة (TRACE/PUT/DELETE).
+
+كتقدر تخرج التقرير بـ HTML أو JSON أو SARIF، وتستعمل `--baseline` باش تبان غير الثغرات الجديدة
+من بعد أول فحص:
+
+```bash
+atlasscan scan https://example.com --authorized --baseline baseline.json --fail-on high -o out.sarif
+```
 
 ⚠️ **استعملها فقط على أنظمة تملكها أو لديك إذن كتابي بفحصها.**

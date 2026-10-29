@@ -62,6 +62,17 @@
   </div>
 {% endif %}
 
+{% if result.suppressed %}
+  <div class="card" style="margin-top: 14px; border-color: var(--accent);">
+    <strong style="color: var(--accent)">Baseline applied</strong>
+    <p style="margin: 6px 0 0;">
+      {{ result.suppressed }} finding(s) already present in baseline
+      <span class="mono">{{ result.baseline_scan_id }}</span> were hidden. This report only shows
+      findings that are <strong>new</strong> since that scan.
+    </p>
+  </div>
+{% endif %}
+
 <p class="muted" style="margin-top: 10px;">
   Modules run: {{ coverage.modules_run|join(", ") or "none" }}
   {% if coverage.modules_failed %}

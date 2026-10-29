@@ -13,6 +13,7 @@ from rich.text import Text
 
 from atlasscan import __version__
 from atlasscan.config import SEVERITY_COLOR
+from atlasscan.core.baseline import BaselineError, apply_baseline, load_baseline
 from atlasscan.core.context import ScanOptions
 from atlasscan.core.models import ScanResult
 from atlasscan.core.report import SEVERITY_LABELS, render_html, write_report
@@ -48,8 +49,13 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--time-based", action="store_true", help="enable slow time-based SQL injection checks")
     scan.add_argument("--proxy", help="HTTP(S) proxy, e.g. http://127.0.0.1:8080")
     scan.add_argument("-H", "--header", action="append", default=[], metavar="NAME: VALUE", help="extra request header")
-    scan.add_argument("-o", "--output", help="write the report to this path (.html or .json)")
+    scan.add_argument("-o", "--output", help="write the report to this path (.html, .json or .sarif)")
     scan.add_argument("--json", action="store_true", help="print the raw JSON result to stdout")
+    scan.add_argument(
+        "--baseline",
+        metavar="PATH|SCAN_ID",
+        help="only report findings that are new since this JSON report or saved scan id",
+    )
     scan.add_argument("--fail-on", choices=RISK_ORDER, default="none", help="exit 1 when a finding at/above this severity exists")
     scan.add_argument("-q", "--quiet", action="store_true", help="no progress output")
     scan.add_argument("-v", "--verbose", action="store_true", help="print description, evidence and remediation for every finding")
@@ -160,6 +166,11 @@ def print_summary(result: ScanResult, report_path: Optional[Path], verbose: bool
     ]
     if report_path:
         lines.append(f"Report: {report_path}")
+    if result.baseline_scan_id:
+        lines.append(
+            f"Baseline: {result.baseline_scan_id}   "
+            f"Suppressed: {result.suppressed} known finding(s)"
+        )
     console.print(Panel("\n".join(lines), title="AtlasScan", border_style=risk_color))
 
     if verbose:
@@ -243,6 +254,19 @@ def cmd_scan(args: argparse.Namespace) -> int:
             spinner.stop()
 
     storage = Storage(args.data_dir)
+
+    if args.baseline:
+        try:
+            baseline = load_baseline(args.baseline, storage)
+        except BaselineError as exc:
+            console.print(f"[red]{exc}[/red]")
+            return 2
+        suppressed = apply_baseline(result, baseline)
+        if suppressed and not args.quiet:
+            console.print(
+                f"[dim]Baseline {baseline.scan_id}: suppressed {suppressed} known finding(s)[/dim]"
+            )
+
     stored = storage.save(result)
 
     report_path: Optional[Path] = None

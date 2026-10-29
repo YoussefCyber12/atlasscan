@@ -17,16 +17,21 @@ ProgressFn = Callable[[str, str], None]
 
 LOGIN_PATH_HINTS = ("login", "signin", "sign-in", "sign_in", "logon", "session/new")
 PASSWORD_INPUT_RE = re.compile(r"<input[^>]*type\s*=\s*['\"]?password", re.IGNORECASE)
+LOGIN_HEADING_RE = re.compile(
+    r"<(?:title|h1|h2|h3|button)\b[^>]*>[^<]*(?:sign\s*in|log\s*in|login|signin)[^<]*</",
+    re.IGNORECASE,
+)
 
 
 def _looks_like_login(response: object) -> bool:
     """Best-effort check that a page with a session cookie is still a login screen."""
     url = getattr(response, "url", "") or ""
     text = getattr(response, "text", "") or ""
-    path = urlparse(url).path.lower()
-    if not any(hint in path for hint in LOGIN_PATH_HINTS):
+    if not PASSWORD_INPUT_RE.search(text):
         return False
-    return bool(PASSWORD_INPUT_RE.search(text))
+    if any(hint in urlparse(url).path.lower() for hint in LOGIN_PATH_HINTS):
+        return True
+    return bool(LOGIN_HEADING_RE.search(text))
 
 
 def normalize_target(target: str) -> str:

@@ -156,3 +156,35 @@ def test_scan_does_not_warn_on_a_normal_page(server_url):
     result = run_scan(server_url, options=options, module_names=["headers"])
 
     assert not any("still looks like a login" in warning for warning in result.coverage.warnings)
+
+
+class FakeResponse:
+    def __init__(self, url: str, text: str) -> None:
+        self.url = url
+        self.text = text
+
+
+def test_login_detection_uses_path_hint():
+    from atlasscan.core.scanner import _looks_like_login
+
+    assert _looks_like_login(FakeResponse("https://x.test/login", "<input type='password'>"))
+
+
+def test_login_detection_falls_back_to_page_text():
+    from atlasscan.core.scanner import _looks_like_login
+
+    html = "<h1>Sign in</h1><input type='password' name='p'>"
+    assert _looks_like_login(FakeResponse("https://x.test/", html))
+
+
+def test_login_detection_requires_a_password_field():
+    from atlasscan.core.scanner import _looks_like_login
+
+    assert not _looks_like_login(FakeResponse("https://x.test/login", "<h1>Sign in</h1>"))
+
+
+def test_login_detection_ignores_password_forms_without_login_wording():
+    from atlasscan.core.scanner import _looks_like_login
+
+    html = "<h2>Change password</h2><input type='password' name='new'>"
+    assert not _looks_like_login(FakeResponse("https://x.test/", html))

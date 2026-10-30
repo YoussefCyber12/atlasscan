@@ -51,3 +51,13 @@ def test_api_rejects_invalid_cookie_string(tmp_path):
     )
     assert response.status_code == 400
     assert "cookie" in response.json()["detail"].lower()
+
+
+def test_api_rejects_body_template_without_marker(tmp_path):
+    client = TestClient(create_app(tmp_path))
+    response = client.post(
+        "/api/scan",
+        json={"target": "https://example.test/", "authorized": True, "data": '{"q":"x"}'},
+    )
+    assert response.status_code == 400
+    assert "FUZZ" in response.json()["detail"]

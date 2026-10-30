@@ -14,6 +14,7 @@ from rich.text import Text
 from atlasscan import __version__
 from atlasscan.config import SEVERITY_COLOR
 from atlasscan.core.baseline import BaselineError, apply_baseline, load_baseline
+from atlasscan.core.body import load_body_template
 from atlasscan.core.context import ScanOptions
 from atlasscan.core.cookies import parse_cookie_string
 from atlasscan.core.models import ScanResult
@@ -48,6 +49,20 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--delay", type=float, default=0.15, help="delay between requests in seconds (default: 0.15)")
     scan.add_argument("--insecure", action="store_true", help="do not verify TLS certificates")
     scan.add_argument("--time-based", action="store_true", help="enable slow time-based SQL injection checks")
+    scan.add_argument(
+        "--post-forms",
+        action="store_true",
+        help="actively test discovered POST forms (login/delete/payment forms are skipped)",
+    )
+    scan.add_argument(
+        "--data",
+        metavar="BODY",
+        help="request-body template for POST testing; use FUZZ for the injection point, or @file",
+    )
+    scan.add_argument(
+        "--content-type",
+        help="Content-Type for --data (JSON is detected automatically)",
+    )
     scan.add_argument("--proxy", help="HTTP(S) proxy, e.g. http://127.0.0.1:8080")
     scan.add_argument(
         "--cookie",
@@ -230,6 +245,12 @@ def cmd_scan(args: argparse.Namespace) -> int:
         console.print(f"[red]{exc}[/red]")
         return 2
 
+    try:
+        data = load_body_template(args.data) if args.data else None
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        return 2
+
     options = ScanOptions(
         crawl=not args.no_crawl,
         max_pages=args.max_pages,
@@ -242,6 +263,9 @@ def cmd_scan(args: argparse.Namespace) -> int:
         headers=headers,
         cookies=cookies,
         cookie_jar=args.cookie_jar,
+        post_forms=args.post_forms,
+        data=data,
+        content_type=args.content_type,
     )
 
     try:

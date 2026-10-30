@@ -36,8 +36,8 @@ Report: ~/.atlasscan/scans/4f1c9a2d8b31.html
 | `cookies`   | `Secure`, `HttpOnly`, `SameSite`, `SameSite=None` without `Secure`             |
 | `cors`      | Reflected origin, wildcard + credentials, `null` origin                        |
 | `jwt`       | `alg:none`, HMAC secret brute-force, missing/expired `exp`, injectable `kid`   |
-| `xss`       | Reflected XSS in GET parameters                                                |
-| `sqli`      | Error-based SQL injection (+ opt-in time-based)                                |
+| `xss`       | Reflected XSS in GET parameters, POST forms and JSON bodies                    |
+| `sqli`      | Error-based SQLi (incl. POST/JSON, opt-in time-based)                          |
 | `redirect`  | Open redirects in `next`, `url`, `return`, … parameters                        |
 | `files`     | Exposed `.git`, `.env`, backups, `phpinfo`, Actuator, Swagger, …               |
 | `tls`       | Certificate validity/expiry, TLS 1.0/1.1 support                               |
@@ -144,6 +144,13 @@ atlasscan scan https://example.com --authorized \
 atlasscan scan https://app.example.com/dashboard --authorized \
   --cookie "session=abc123; csrf=xyz" -o reports/private.html
 
+# Actively test discovered POST forms
+atlasscan scan https://example.com --authorized --post-forms
+
+# Fuzz a JSON API body (one FUZZ marker per value to test)
+atlasscan scan https://api.example.com/search --authorized \
+  --data '{"q":"FUZZ","limit":10}' -o reports/api.html
+
 # Verbose findings (description + evidence + remediation)
 atlasscan scan https://example.com --authorized --verbose
 
@@ -168,6 +175,9 @@ atlasscan dashboard --port 8000
 | `--delay`            | `0.15`       | Delay between requests (seconds)                         |
 | `--insecure`         | off          | Disable TLS verification                                 |
 | `--time-based`       | off          | Enable slow time-based SQLi checks                       |
+| `--post-forms`       | off          | Actively test POST forms (skips login/delete/payment)    |
+| `--data`             | –            | Body template with `FUZZ` markers, or `@file`             |
+| `--content-type`     | auto         | Content-Type for `--data` (JSON auto-detected)            |
 | `--proxy`            | –            | Route traffic through a proxy (e.g. Burp at `:8080`)     |
 | `--cookie`           | –            | Session cookies: `name=value; name2=value2`              |
 | `--cookie-jar`       | –            | Netscape `cookies.txt` or JSON cookie export file        |
@@ -216,6 +226,42 @@ Things to keep in mind:
 - **Use one session per scan**, and log out / rotate the token when you are done.
 - You can combine this with `--proxy http://127.0.0.1:8080` to review the traffic in Burp.
 - Only ever do this on accounts and systems you are authorized to test.
+
+### Testing POST forms and JSON APIs
+
+GET parameters are only half of an application. `--post-forms` makes the `xss` and `sqli`
+modules submit payloads to forms discovered during the crawl, and `--data` does the same for a
+request body you provide.
+
+```bash
+# Discovered forms: hidden/CSRF default values are reused, each field is tested in turn
+atlasscan scan https://example.com --authorized --post-forms
+
+# JSON API: every FUZZ inside a JSON string becomes an injection point
+atlasscan scan https://api.example.com/search --authorized \
+  --data '{"q":"FUZZ","filters":{"category":"FUZZ"}}' \
+  --cookie "session=abc" -o reports/api.html
+
+# Form-encoded body or a body saved in a file
+atlasscan scan https://example.com/search --authorized --data "q=FUZZ&page=1"
+atlasscan scan https://example.com/search --authorized --data @body.json
+```
+
+> Active POST testing sends real payloads and may create data. Only use it on a test account or
+> staging environment you are authorized to modify.
+
+Safety rules built into the scanner:
+
+- `--post-forms` is **off by default**; nothing is submitted unless you ask for it.
+- Forms with password fields, and actions that look like login/signup/delete/payment/checkout,
+  are skipped so testing cannot lock accounts out or destroy data.
+- One `FUZZ` marker is injected at a time; the other markers get a harmless value.
+- JSON templates are handled structurally, so payload quotes are escaped and the body stays
+  valid JSON.
+- `--max-params` caps how many fields/markers are tested in total.
+- Payloads for error-based SQLi are the same conservative quote characters used for GET;
+  `--time-based` still applies to GET parameters only.
+- Only send `--data` bodies you are allowed to test: they hit the exact URL you scanned.
 
 ### Try it locally
 
@@ -382,6 +428,7 @@ atlasscan/
 │   ├── sarif.py           # SARIF 2.1.0 exporter
 │   ├── baseline.py        # report only findings new since a previous scan
 │   ├── cookies.py         # session cookie parsing (inline, cookies.txt, JSON)
+│   ├── body.py            # POST/JSON body templates with FUZZ markers
 │   ├── storage.py         # JSON-per-scan storage
 │   └── utils.py           # URL helpers + SQL error signatures
 ├── modules/               # one file per check
@@ -432,7 +479,7 @@ network access is required.
 ## Roadmap
 
 - [ ] JS-aware crawling (headless browser) and SPA support
-- [ ] POST parameter and JSON body testing
+- [x] POST parameter and JSON body testing
 - [ ] Blind SSRF / XXE / SSTI checks
 - [ ] Wordlist-based content discovery
 - [x] SARIF output for GitHub code scanning

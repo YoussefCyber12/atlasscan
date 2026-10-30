@@ -6,8 +6,9 @@ from datetime import datetime, timezone
 from typing import Callable, Optional
 from urllib.parse import urlparse
 
+from atlasscan.core.body import marker_count
 from atlasscan.core.context import ScanContext, ScanOptions
-from atlasscan.core.crawler import crawl
+from atlasscan.core.crawler import crawl, is_safe_to_submit
 from atlasscan.core.http import HttpClient
 from atlasscan.core.models import Finding, ScanResult
 from atlasscan.core.utils import normalize_url, param_names
@@ -110,6 +111,14 @@ def run_scan(
 
         result.stats.pages_crawled = len(pages)
         discovered_params = {(page, name) for page in pages for name in param_names(page)}
+        if options.post_forms:
+            for form in forms:
+                if is_safe_to_submit(form):
+                    discovered_params.update((form.action, field) for field in form.fields)
+        if options.data:
+            discovered_params.update(
+                (base_url, f"body:{index + 1}") for index in range(marker_count(options.data))
+            )
         ctx = ScanContext(
             client=client,
             base_url=base_url,
@@ -171,7 +180,8 @@ def _fill_coverage(
     injection_modules = sorted(ran & {"xss", "sqli", "redirect"})
     if coverage.parameters_discovered == 0 and injection_modules:
         coverage.warnings.append(
-            "No URL parameters were discovered, so these modules had nothing to test: "
+            "No testable parameters (URL parameters, form fields or --data markers) were "
+            "discovered, so these modules had nothing to test: "
             + ", ".join(injection_modules)
             + ". This is NOT evidence that the application is free of those issues."
         )

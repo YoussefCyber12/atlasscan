@@ -23,6 +23,9 @@ class ScanOptions:
     headers: dict[str, str] = field(default_factory=dict)
     cookies: dict[str, str] = field(default_factory=dict)
     cookie_jar: str | None = None
+    post_forms: bool = False
+    data: str | None = None
+    content_type: str | None = None
 
 
 @dataclass

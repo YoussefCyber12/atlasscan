@@ -4,6 +4,27 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 uses [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-10-30
+
+### Added
+
+- Active POST form testing: `--post-forms` makes the `xss` and `sqli` modules submit payloads to
+  forms found by the crawler, reusing hidden/CSRF default values. Login, signup, delete, payment
+  and other destructive actions are skipped automatically.
+- JSON/body fuzzing with `--data BODY` (or `@file`): every `FUZZ` marker inside a JSON string is
+  an injection point, handled structurally so the body stays valid JSON. `--content-type`
+  overrides the auto-detected type.
+- Form parsing now captures default values and flags password fields.
+- Coverage counts POST fields and body markers as discovered/tested parameters; the
+  "no parameters" warning no longer fires when active body testing is enabled.
+- Dashboard: "Actively test POST forms" checkbox and a request-body template field; `/api/scan`
+  accepts `post_forms`, `data` and `content_type`.
+- README section "Testing POST forms and JSON APIs" with safety guidance.
+
+### Fixed
+
+- Dashboard scans with an empty cookie field no longer fail cookie parsing.
+
 ## [0.3.0] - 2026-10-30
 
 ### Added

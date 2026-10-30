@@ -22,6 +22,43 @@ class Form:
     action: str
     method: str = "GET"
     fields: list[str] = field(default_factory=list)
+    values: dict[str, str] = field(default_factory=dict)
+    has_password: bool = False
+
+
+# Submitting these forms could destroy data, create accounts or lock users out, so active
+# POST fuzzing never touches them even when --post-forms is enabled.
+UNSAFE_FORM_HINTS = (
+    "delete",
+    "remove",
+    "destroy",
+    "logout",
+    "signout",
+    "sign-out",
+    "unsubscribe",
+    "checkout",
+    "payment",
+    "purchase",
+    "transfer",
+    "refund",
+    "revoke",
+    "login",
+    "signin",
+    "sign-in",
+    "signup",
+    "register",
+    "password",
+)
+
+
+def is_safe_to_submit(form: Form) -> bool:
+    """True when a form is a reasonable target for active payload testing."""
+    if form.method != "POST" or not form.fields:
+        return False
+    if form.has_password:
+        return False
+    action = form.action.lower()
+    return not any(hint in action for hint in UNSAFE_FORM_HINTS)
 
 
 class PageParser(HTMLParser):
@@ -49,8 +86,13 @@ class PageParser(HTMLParser):
             self._current_form = Form(action=action, method=(data.get("method") or "GET").upper())
             self.forms.append(self._current_form)
         elif tag in ("input", "select", "textarea") and self._current_form is not None:
-            if data.get("name") and data.get("type", "").lower() not in ("submit", "button", "reset", "file"):
-                self._current_form.fields.append(data["name"])
+            name = data.get("name")
+            kind = (data.get("type") or "").lower()
+            if name and kind not in ("submit", "button", "reset", "file"):
+                self._current_form.fields.append(name)
+                self._current_form.values[name] = data.get("value") or ""
+                if kind == "password":
+                    self._current_form.has_password = True
         elif tag == "script" and data.get("src"):
             self.scripts.append(urljoin(self.base_url, data["src"]))
         elif tag == "title":

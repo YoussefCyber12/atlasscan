@@ -38,6 +38,10 @@ INDEX = """<!doctype html>
     <input name="user"><input name="pass" type="password">
     <button>Login</button>
   </form>
+  <form method="post" action="/post-search">
+    <input name="q">
+    <button>Search</button>
+  </form>
 </body></html>
 """
 
@@ -59,8 +63,28 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_POST(self) -> None:
-        self.rfile.read(int(self.headers.get("Content-Length", 0)))
-        self._send(200, "<html><body>logged in (no CSRF token, no validation)</body></html>")
+        raw = self.rfile.read(int(self.headers.get("Content-Length", 0))).decode("utf-8", "replace")
+        parsed = urlparse(self.path)
+        if parsed.path == "/post-search":
+            value = parse_qs(raw).get("q", [""])[0]
+            self._echo(value)
+        elif parsed.path == "/api/search":
+            try:
+                value = str(json.loads(raw).get("q", ""))
+            except ValueError:
+                value = ""
+            self._echo(value)
+        else:
+            self._send(200, "<html><body>logged in (no CSRF token, no validation)</body></html>")
+
+    def _echo(self, value: str) -> None:
+        body = f"<html><body>Results for {value}"
+        if "'" in value or '"' in value:
+            body += (
+                "<br>You have an error in your SQL syntax; check the manual that "
+                "corresponds to your MySQL server version"
+            )
+        self._send(200, body + "</body></html>")
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)

@@ -24,6 +24,17 @@
       <p class="muted" style="margin: 8px 0 0; font-size: 12px;">
         Start on an authenticated URL. Cookies stay on this machine and are not saved with the report.
       </p>
+      <label class="muted" style="display: flex; gap: 8px; align-items: center; margin-top: 10px; font-size: 13px;">
+        <input type="checkbox" name="post_forms">
+        Actively test POST forms (login, delete and payment forms are skipped)
+      </label>
+      <div style="margin-top: 10px;">
+        <textarea name="data" rows="3" placeholder='Request body template with FUZZ, e.g. {"q":"FUZZ"}' style="width: 100%; box-sizing: border-box;"></textarea>
+        <input type="text" name="content_type" placeholder="Content-Type (optional, JSON auto-detected)" style="margin-top: 8px; width: 100%; box-sizing: border-box;">
+      </div>
+      <p class="muted" style="margin: 8px 0 0; font-size: 12px;">
+        Active POST/body testing sends payloads and may create data. Use a test account only.
+      </p>
     </details>
     <label class="muted" style="display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: 13px;">
       <input type="checkbox" name="authorized" required>

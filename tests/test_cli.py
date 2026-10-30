@@ -48,6 +48,15 @@ def test_parser_scan_cookie_flags():
     assert args.cookie_jar == "c.txt"
 
 
+def test_parser_scan_body_flags():
+    args = build_parser().parse_args(
+        ["scan", "https://example.test", "--post-forms", "--data", '{"q":"FUZZ"}']
+    )
+    assert args.post_forms is True
+    assert args.data == '{"q":"FUZZ"}'
+    assert args.content_type is None
+
+
 def test_parse_headers():
     assert parse_headers(["X-Test: 1", "Authorization: Bearer abc"]) == {
         "X-Test": "1",

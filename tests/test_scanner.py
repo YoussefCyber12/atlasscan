@@ -101,7 +101,7 @@ def test_coverage_counts_parameters_and_forms(result):
 
 
 def test_coverage_does_not_emit_false_no_params_warning(result):
-    assert not any("No URL parameters" in warning for warning in result.coverage.warnings)
+    assert not any("No testable parameters" in warning for warning in result.coverage.warnings)
 
 
 def test_no_parameters_produces_explicit_warning(server_url):
@@ -109,14 +109,14 @@ def test_no_parameters_produces_explicit_warning(server_url):
     empty = run_scan(server_url, options=options, module_names=["xss"])
     assert empty.coverage.parameters_discovered == 0
     assert empty.coverage.parameters_tested == 0
-    assert any("No URL parameters" in warning for warning in empty.coverage.warnings)
+    assert any("No testable parameters" in warning for warning in empty.coverage.warnings)
 
 
 def test_no_parameters_warning_only_mentions_modules_that_ran(server_url):
     options = ScanOptions(delay=0.0, crawl=False, timeout=5)
     headers_only = run_scan(server_url, options=options, module_names=["headers"])
     assert headers_only.coverage.modules_run == ["headers"]
-    assert not any("No URL parameters" in warning for warning in headers_only.coverage.warnings)
+    assert not any("No testable parameters" in warning for warning in headers_only.coverage.warnings)
 
 
 def test_risk_breakdown_explains_the_score(result):

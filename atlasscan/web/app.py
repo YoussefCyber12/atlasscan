@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from atlasscan import __version__
+from atlasscan.core.body import load_body_template
 from atlasscan.core.context import ScanOptions
 from atlasscan.core.cookies import parse_cookie_string
 from atlasscan.core.report import SEVERITY_LABELS, TEMPLATES_DIR
@@ -50,6 +51,9 @@ def create_app(data_dir: Path | str | None = None) -> FastAPI:
         authorized: Optional[str] = Form(None),
         cookie: Optional[str] = Form(None),
         cookie_jar: Optional[str] = Form(None),
+        post_forms: Optional[str] = Form(None),
+        data: Optional[str] = Form(None),
+        content_type: Optional[str] = Form(None),
     ):
         if authorized not in ("on", "true", "1", "yes"):
             return render(
@@ -64,11 +68,22 @@ def create_app(data_dir: Path | str | None = None) -> FastAPI:
             return render(request, "index.html", scans=storage.list(), error=str(exc))
 
         try:
-            cookies = parse_cookie_string(cookie or "")
+            cookies = parse_cookie_string(cookie) if cookie else {}
         except ValueError as exc:
             return render(request, "index.html", scans=storage.list(), error=str(exc))
 
-        options = ScanOptions(cookies=cookies, cookie_jar=cookie_jar or None)
+        try:
+            body = load_body_template(data) if data else None
+        except ValueError as exc:
+            return render(request, "index.html", scans=storage.list(), error=str(exc))
+
+        options = ScanOptions(
+            cookies=cookies,
+            cookie_jar=cookie_jar or None,
+            post_forms=post_forms in ("on", "true", "1", "yes"),
+            data=body,
+            content_type=content_type or None,
+        )
         job_id = _start_job(normalized, storage, jobs, jobs_lock, semaphore, options=options)
         return RedirectResponse(url=f"/job/{job_id}", status_code=303)
 
@@ -130,8 +145,15 @@ def create_app(data_dir: Path | str | None = None) -> FastAPI:
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+        raw_cookies = payload.get("cookies")
         try:
-            cookies = parse_cookie_string(payload.get("cookies") or "")
+            cookies = parse_cookie_string(str(raw_cookies)) if raw_cookies else {}
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        raw_data = payload.get("data")
+        try:
+            data = load_body_template(str(raw_data)) if raw_data else None
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -143,6 +165,9 @@ def create_app(data_dir: Path | str | None = None) -> FastAPI:
             delay=float(payload.get("delay", 0.15)),
             cookies=cookies,
             cookie_jar=payload.get("cookie_jar") or None,
+            post_forms=bool(payload.get("post_forms", False)),
+            data=data,
+            content_type=str(payload["content_type"]) if payload.get("content_type") else None,
         )
         job_id = _start_job(normalized, storage, jobs, jobs_lock, semaphore, modules, options)
         return JSONResponse({"job_id": job_id, "status": "running"}, status_code=202)

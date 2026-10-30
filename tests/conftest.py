@@ -37,6 +37,10 @@ INDEX = """<!doctype html>
   <form method="post" action="/wp-login.php?action=postpass">
     <input type="password" name="post_password">
   </form>
+  <form method="post" action="/post-echo">
+    <input type="hidden" name="csrf" value="tok123">
+    <input type="text" name="q">
+  </form>
 </body></html>
 """
 
@@ -59,8 +63,30 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         length = int(self.headers.get("Content-Length", 0))
-        self.rfile.read(length)
-        self._send(200, "<html><body>ok</body></html>")
+        raw = self.rfile.read(length).decode("utf-8", "replace")
+        path = urlparse(self.path).path
+
+        if path == "/post-echo":
+            value = parse_qs(raw).get("q", [""])[0]
+            self._echo(value)
+        elif path == "/json-echo":
+            try:
+                value = str(json.loads(raw).get("q", ""))
+            except ValueError:
+                value = ""
+            self._echo(value)
+        else:
+            self._send(200, "<html><body>ok</body></html>")
+
+    def _echo(self, value: str) -> None:
+        body = f"<html><body>Result: {value}"
+        if "'" in value or '"' in value:
+            body += (
+                "<br>You have an error in your SQL syntax; check the manual that "
+                "corresponds to your MySQL server version"
+            )
+        body += "</body></html>"
+        self._send(200, body)
 
     def do_OPTIONS(self) -> None:
         self._send(200, "", {"Allow": "GET, HEAD, OPTIONS, PUT, TRACE"})
